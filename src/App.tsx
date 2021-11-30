@@ -4,6 +4,8 @@ import 'flexlayout-react/style/light.css'
 
 import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode } from 'flexlayout-react';
 
+import { analyseModel, stackZAxis, IAnalyzedModel } from './FlexModelUtils';
+
 import useMedia from './hooks/useMediaQuery';
 import useWindowSize from './hooks/useWindowSize';
 
@@ -73,33 +75,42 @@ var json: IJsonModel = {
 
 
 function App() {
-  const [model, setModel] = useState(Model.fromJson(json));
+  // currentMOdel is what we're currently rendering.
+  // If we need to alter the layout due to size restrictions, the previous state is saved in "fullModel" so that it can be restored later
+  const [currentModel, setCurrentModel] = useState(() => { return analyseModel(Model.fromJson(json)) });
+  const [fullModel, setFullModel] = useState(() => { return currentModel });
+  const [canvas, setCanvas] = useState({ absoluteCanvasHeight: false, absoluteCanvasWidth: false });
 
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
 
-  // When crossing breakpoint, toggle maximise
+  // When crossing breakpoint, 
   const isTooSmall = useMedia('(max-width: 600px)');
   useEffect(() => {
-    if (model) {
-      let selectedNode: FLNode | undefined = undefined;
-      model.visitNodes(node => {
-        if (!selectedNode && node.getType().toLowerCase() === 'tabset') {
-          // simply take the first tabset node we get
-          selectedNode = node;
-        }
-      });
-      if (selectedNode) {
-        const isAlreadyMaximised = (selectedNode as TabSetNode).isMaximized();
-        if (isAlreadyMaximised !== isTooSmall) {
-          model.doAction(
-            Actions.maximizeToggle((selectedNode as FLNode).getId()),
-          );
-          setModel(model);
-        }
+    if (isTooSmall) {
+      if (currentModel) {
+        console.log("resizing model...")
+        // analyse current model
+        let analysedModel = analyseModel(currentModel.model);
+
+        // save this model
+        let saveCurrentJson = currentModel.model.toJson();
+        let copyOfCurrent = { ...analysedModel };
+        copyOfCurrent.model = Model.fromJson(saveCurrentJson);
+        setFullModel(copyOfCurrent);
+
+        // alter current model
+        let newModel = stackZAxis(analysedModel);
+
+        setCurrentModel(newModel)
       }
+    } else {
+      console.log("restoring model...")
+
+      setCurrentModel(fullModel)
     }
-  }, [isTooSmall, model]);
+
+  }, [isTooSmall]);
 
 
 
@@ -129,10 +140,10 @@ function App() {
     <div className="outer" >
       <button onClick={onAdd}>Add</button>
       <div className="inner" ref={containerRef}>
-        {model && (
+        {currentModel && (
           <Layout ref={layoutRef}
             onAction={interceptAction}
-            model={model}
+            model={currentModel.model}
             factory={factory} />)}
       </div>
     </div>
