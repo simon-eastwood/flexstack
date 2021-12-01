@@ -78,10 +78,10 @@ const templateModel = analyseModel(Model.fromJson(json), true);
 
 
 function App() {
-  // currentMOdel is what we're currently rendering.
-  // If we need to alter the layout due to size restrictions, the previous state is saved in "stachedModel" so that it can be restored later
+  // currentModel is what we're currently rendering.
+  // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModel" so that it can be restored later
   const [currentModel, setCurrentModel] = useState(() => { return templateModel });
-  const [stachedModel, setStachedModel] = useState<IAnalyzedModel>();
+  const [stashedModel, setStashedModel] = useState<IAnalyzedModel>();
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState(false);
   const [stackStrategy, setStackStrategy] = useState('Z');
@@ -93,20 +93,20 @@ function App() {
 
   // If there is a stashed model, I want to switch back to it as soon as possible
   // If there is no stashed model (yet) then trigger when the current model becomes too big for viewport
-  const isTooNarrow = useMedia(`(max-width: ${stachedModel ? (stachedModel as IAnalyzedModel).widthNeeded : currentModel.widthNeeded}px)`);
+  const isTooNarrow = useMedia(`(max-width: ${stashedModel ? (stashedModel as IAnalyzedModel).widthNeeded : currentModel.widthNeeded}px)`);
   useEffect(() => {
     if (currentModel) {
       if (!isTooNarrow) {
-        if (stachedModel) {
-          setCurrentModel(stachedModel);
-          setStachedModel(undefined);
+        if (stashedModel) {
+          setCurrentModel(stashedModel);
+          setStashedModel(undefined);
         }
       } else {
         // stash the current model
         let saveCurrentJson = currentModel.model.toJson();
         let copyOfCurrent = { ...currentModel };
         copyOfCurrent.model = Model.fromJson(saveCurrentJson);
-        setStachedModel(copyOfCurrent);
+        setStashedModel(copyOfCurrent);
 
         // alter current model
         let newModel: IAnalyzedModel;

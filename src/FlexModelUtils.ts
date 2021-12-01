@@ -1,4 +1,4 @@
-import { Model, TabNode, TabSetNode, IJsonModel, Action, Orientation, Actions, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
+import { Model, TabNode, TabSetNode, Orientation, Actions, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
 
 
 
@@ -182,4 +182,5 @@ export const stackYAxis = (analyzedModel: IAnalyzedModel): IAnalyzedModel => {
 
     return analyseModel(analyzedModel.model);
 }
+
 
