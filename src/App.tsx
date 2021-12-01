@@ -22,7 +22,7 @@ var json: IJsonModel = {
         "weight": 50,
         "selected": 0,
         "minWidth": 510,
-        "minHeight": 50,
+        "minHeight": 350,
         "children": [
           {
             "type": "tab",
@@ -43,7 +43,7 @@ var json: IJsonModel = {
         "weight": 50,
         "selected": 0,
         "minWidth": 510,
-        "minHeight": 50,
+        "minHeight": 350,
         "children": [
           {
             "type": "tab",
@@ -58,7 +58,7 @@ var json: IJsonModel = {
         "weight": 50,
         "selected": 0,
         "minWidth": 510,
-        "minHeight": 50,
+        "minHeight": 350,
 
         "children": [
           {
@@ -182,13 +182,13 @@ function App() {
     console.log("model changed");
     console.log(model);
 
-    // setCurrentModel(analyseModel(model));
+    setCurrentModel(analyseModel(model));
   }
 
 
   return (
 
-    <div className="outer" style={canvasToggleAbs ? { height: currentModel.heightNeeded + 'px', width: currentModel.widthNeeded + 'px' } : { height: '100%', width: '100%' }}>
+    <div className="outer" style={canvasToggleAbs ? { height: currentModel.heightNeeded + 'px' } : { height: '100%' }}>
       <span> Stacking strategy:</span>
       <select value={stackStrategy} onChange={changeStrategy}>
         <option value="Z">Z axis</option>

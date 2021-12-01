@@ -1,4 +1,4 @@
-import { Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
+import { Model, TabNode, TabSetNode, IJsonModel, Action, Orientation, Actions, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
 
 
 
@@ -12,29 +12,50 @@ export interface IAnalyzedModel {
     rootRow?: FLNode | undefined
 }
 
+interface IDimensions {
+    widthNeeded?: number,
+    heightNeeded?: number,
+}
+const analyseRow = (row: RowNode): IDimensions => {
+    let widthNeeded = 0;
+    let heightNeeded = 0;
+
+    row.getChildren().forEach(node => {
+        if (node.getType() === TabSetNode.TYPE) {
+            const ts = node as TabSetNode;
+            if (row.getOrientation() === Orientation.HORZ) {
+                widthNeeded += ts.getMinWidth();
+                heightNeeded = Math.max(heightNeeded, ts.getMinHeight());
+            } else {
+                widthNeeded = Math.max(widthNeeded, ts.getMinWidth());
+                heightNeeded += ts.getMinHeight();
+            }
+        } else if (node.getType() === RowNode.TYPE) {
+            // recurse for child row
+            const size = analyseRow(node as RowNode);
+            if (row.getOrientation() === Orientation.HORZ) {
+                if (size.widthNeeded) widthNeeded += size.widthNeeded;
+                if (size.heightNeeded) heightNeeded = Math.max(heightNeeded, size.heightNeeded);
+            } else {
+                if (size.widthNeeded) widthNeeded = Math.max(widthNeeded, size.widthNeeded);
+                if (size.heightNeeded) heightNeeded += size.heightNeeded;
+            }
+        }
+    })
+
+    return { widthNeeded, heightNeeded }
+}
+
 export const analyseModel = (modelToAnalyse: Model, name?: string): IAnalyzedModel => {
 
     let prioTabset: TabSetNode | undefined = undefined;
     let activeTabset: TabSetNode | undefined = undefined;
-    let row: RowNode | undefined = undefined;
-    let widthNeeded = 0;
-    let heightNeeded = 0;
+    let rootRow = modelToAnalyse.getRoot();
 
 
     console.log("doign analysis");
     // find the tabset that is currently active, and also the first tabset (as fallback)
     modelToAnalyse.visitNodes(node => {
-        console.log(node.getType() + " is " + node.getId());
-        if (node.getChildren()) {
-            console.log("has children");
-            node.getChildren().forEach(node => console.log("  " + node.getId() + ","))
-        } else console.log("has NO children");
-
-        if (node.getParent()) {
-            console.log("has parent " + node.getParent()!.getId());
-        } else console.log("has NO parent");
-
-
 
         if (!prioTabset && node.getType().toLowerCase() === 'tabset') prioTabset = node as TabSetNode;
 
@@ -42,21 +63,11 @@ export const analyseModel = (modelToAnalyse: Model, name?: string): IAnalyzedMod
             activeTabset = node as TabSetNode;
         }
 
-        if (!row && node.getType().toLowerCase() === 'row' && !node.getParent()) {
-            row = node as RowNode;
-        }
-
-        if (node.getType().toLowerCase() === 'tabset') {
-            if ((node as TabSetNode).getMinWidth() > 0) {
-                widthNeeded += (node as TabSetNode).getMinWidth();
-
-            }
-            if ((node as TabSetNode).getMinHeight() > 0) {
-                heightNeeded += (node as TabSetNode).getMinHeight();
-
-            }
-        }
     });
+
+    // call analyze row with root
+    const size = analyseRow(rootRow);
+
     console.log("done");
 
     const result: IAnalyzedModel = {
@@ -64,13 +75,14 @@ export const analyseModel = (modelToAnalyse: Model, name?: string): IAnalyzedMod
         model: modelToAnalyse,
         activeTabset: activeTabset,
         prioTabset: prioTabset,
-        rootRow: row
+        rootRow,
+        widthNeeded: size.widthNeeded,
+        heightNeeded: size.heightNeeded
     }
 
     console.log(modelToAnalyse.toJson());
-    if (widthNeeded > 0) result.widthNeeded = widthNeeded; console.log("min width = "); console.log(widthNeeded);
-    if (heightNeeded > 0) result.heightNeeded = heightNeeded; console.log("min height = "); console.log(heightNeeded);
 
+    console.log(`SIZE : ${size.heightNeeded} x ${size.widthNeeded}`)
     return result;
 }
 
