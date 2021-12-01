@@ -7,7 +7,6 @@ import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node a
 import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis } from './FlexModelUtils';
 
 import useMedia from './hooks/useMediaQuery';
-import useWindowSize from './hooks/useWindowSize';
 
 var json: IJsonModel = {
   global: {
@@ -21,35 +20,34 @@ var json: IJsonModel = {
         "type": "tabset",
         "weight": 50,
         "selected": 0,
-        "minWidth": 510,
-        "minHeight": 350,
         "children": [
           {
             "type": "tab",
             "name": "Things to try",
             "component": "text",
             "config": {
-              "text": "<ul><li>drag tabs</li><li>drag splitters</li><li>double click on tab to rename</li><li>double click on tabstrip to maximize</li><li>use the Add button to add another tab</li></ul>"
-
+              "text": "<ul><li>drag tabs</li><li>drag splitters</li><li>double click on tab to rename</li><li>double click on tabstrip to maximize</li><li>use the Add button to add another tab</li></ul>",
+              "minWidth": 510,
+              "minHeight": 350,
             }
           }
         ]
       },
 
       {
-
-
         "type": "tabset",
         "weight": 50,
         "selected": 0,
-        "minWidth": 510,
-        "minHeight": 350,
         "children": [
           {
             "type": "tab",
             "name": "two",
             "component": "text",
-            "config": { "text": "" }
+            "config": {
+              "text": "",
+              "minWidth": 510,
+              "minHeight": 350,
+            }
           }
         ]
       },
@@ -57,15 +55,16 @@ var json: IJsonModel = {
         "type": "tabset",
         "weight": 50,
         "selected": 0,
-        "minWidth": 510,
-        "minHeight": 350,
-
         "children": [
           {
             "type": "tab",
             "name": "three",
             "component": "text",
-            "config": { "text": "" }
+            "config": {
+              "text": "",
+              "minWidth": 510,
+              "minHeight": 350
+            }
           }
         ]
       }
@@ -75,14 +74,14 @@ var json: IJsonModel = {
   }
 };
 
-const templateModel = analyseModel(Model.fromJson(json), "full");
+const templateModel = analyseModel(Model.fromJson(json), true);
 
 
 function App() {
   // currentMOdel is what we're currently rendering.
-  // If we need to alter the layout due to size restrictions, the previous state is saved in "fullModel" so that it can be restored later
+  // If we need to alter the layout due to size restrictions, the previous state is saved in "stachedModel" so that it can be restored later
   const [currentModel, setCurrentModel] = useState(() => { return templateModel });
-  const [fullModel, setFullModel] = useState(() => { return currentModel });
+  const [stachedModel, setStachedModel] = useState<IAnalyzedModel>();
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState(false);
   const [stackStrategy, setStackStrategy] = useState('Z');
@@ -92,38 +91,38 @@ function App() {
 
 
 
-  // If too narrow for full model, save it and make an adapted version, 
-  const isTooNarrowForFullModel = useMedia(`(max-width: ${fullModel.widthNeeded}px)`);
+  // If there is a stashed model, I want to switch back to it as soon as possible
+  // If there is no stashed model (yet) then trigger when the current model becomes too big for viewport
+  const isTooNarrow = useMedia(`(max-width: ${stachedModel ? (stachedModel as IAnalyzedModel).widthNeeded : currentModel.widthNeeded}px)`);
   useEffect(() => {
     if (currentModel) {
-      if (!isTooNarrowForFullModel) {
-        console.log("restoring model...")
-        setCurrentModel(fullModel);
+      if (!isTooNarrow) {
+        if (stachedModel) {
+          setCurrentModel(stachedModel);
+          setStachedModel(undefined);
+        }
       } else {
-        // analyse current model to prepare change
-        let analysedModel = analyseModel(currentModel.model);
-
-        // save this model
+        // stash the current model
         let saveCurrentJson = currentModel.model.toJson();
-        let copyOfCurrent = { ...analysedModel };
+        let copyOfCurrent = { ...currentModel };
         copyOfCurrent.model = Model.fromJson(saveCurrentJson);
-        setFullModel(copyOfCurrent);
+        setStachedModel(copyOfCurrent);
 
         // alter current model
         let newModel: IAnalyzedModel;
 
-        if (isTooNarrowForFullModel) {
+        if (isTooNarrow) {
           if (stackStrategy === 'Z') {
-            newModel = stackZAxis(analysedModel);
+            newModel = stackZAxis(currentModel);
             setCanvasToggleAbs(false);
           } else {
-            newModel = stackYAxis(analysedModel);
+            newModel = stackYAxis(currentModel);
           }
           setCurrentModel(newModel);
         }
       }
     }
-  }, [isTooNarrowForFullModel]);
+  }, [isTooNarrow]);
 
 
   // If too short for current model switch to absolute, 
@@ -150,27 +149,18 @@ function App() {
     (layoutRef.current! as Layout).addTabWithDragAndDropIndirect("Add panel<br>(Drag to location)", {
       component: "text",
       name: "added",
-      config: { text: "i was added" }
+      config: { text: "i was added", minHeight: 300, minWidth: 400 }
     }, undefined);
   }
 
   const interceptAction = (action: Action) => {
     console.log(action);
 
-    if (action.type === Actions.MOVE_NODE) {
-      const fromNode = currentModel.model.getNodeById(action.data.fromNode);
-      const toNode = currentModel.model.getNodeById(action.data.toNode);
+    // when tabs are moved by the user, this can lead to a "divide" whereby a new tabset is created automatically for the tab
+    // this new tabset will not have a minimum size and so this needs to be set
+    // also for deletion of tabs or addition of nodes, the size may be impacted
+    setTimeout(() => { setCurrentModel(analyseModel(currentModel.model, true /* update min sizes if needed*/)); }, 100);
 
-      if ((fromNode && fromNode.getType() === TabNode.TYPE) &&
-        (fromNode.getParent() && fromNode.getParent()!.getType() === TabSetNode.TYPE) &&
-        (toNode && toNode.getType() === TabSetNode.TYPE)) {
-
-        console.log("FROM width " + (fromNode.getParent()! as TabSetNode).getMinWidth());
-        console.log("TO WIDTH = " + (toNode as TabSetNode).getMinWidth());
-      } else {
-        console.log("WIDZH LOST?")
-      }
-    }
     return action;
   }
 
@@ -182,7 +172,7 @@ function App() {
     console.log("model changed");
     console.log(model);
 
-    setCurrentModel(analyseModel(model));
+    setCurrentModel(analyseModel(model, false /* avoid infinite loop*/));
   }
 
 

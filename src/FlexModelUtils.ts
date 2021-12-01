@@ -3,7 +3,6 @@ import { Model, TabNode, TabSetNode, IJsonModel, Action, Orientation, Actions, N
 
 
 export interface IAnalyzedModel {
-    name?: string,
     model: Model,
     activeTabset: FLNode | undefined,
     prioTabset: FLNode | undefined,
@@ -13,26 +12,57 @@ export interface IAnalyzedModel {
 }
 
 interface IDimensions {
-    widthNeeded?: number,
-    heightNeeded?: number,
+    widthNeeded: number,
+    heightNeeded: number,
 }
-const analyseRow = (row: RowNode): IDimensions => {
+
+
+const getTabSetMinSize = (tabset: TabSetNode, updateIfNeeded: boolean): IDimensions => {
+    let heightNeeded = 0;
+    let widthNeeded = 0;
+
+    // iterate through the tabs to get min sizes
+    tabset.getChildren().forEach(node => {
+        if (node.getType() != TabNode.TYPE) {
+            throw Error("tabset has a child which is not a tab - this is not expected")
+        }
+
+        const t = node as TabNode;
+        heightNeeded = Math.max(heightNeeded, t.getConfig().minHeight);
+        widthNeeded = Math.max(widthNeeded, t.getConfig().minWidth);
+
+    })
+
+    // to avoid infinite loops, updates cannot be done on model updates
+    if (updateIfNeeded && (heightNeeded > 0 || widthNeeded > 0)) {
+        const setSize = Actions.updateNodeAttributes(tabset.getId(), { minWidth: widthNeeded, minHeight: heightNeeded });
+        tabset.getModel().doAction(setSize);
+    }
+
+    return {
+        widthNeeded,
+        heightNeeded
+    }
+
+}
+
+const analyseRow = (row: RowNode, updateIfNeeded: boolean): IDimensions => {
     let widthNeeded = 0;
     let heightNeeded = 0;
 
     row.getChildren().forEach(node => {
         if (node.getType() === TabSetNode.TYPE) {
-            const ts = node as TabSetNode;
+            const ts = getTabSetMinSize(node as TabSetNode, updateIfNeeded);
             if (row.getOrientation() === Orientation.HORZ) {
-                widthNeeded += ts.getMinWidth();
-                heightNeeded = Math.max(heightNeeded, ts.getMinHeight());
+                widthNeeded += ts.widthNeeded;
+                heightNeeded = Math.max(heightNeeded, ts.heightNeeded);
             } else {
-                widthNeeded = Math.max(widthNeeded, ts.getMinWidth());
-                heightNeeded += ts.getMinHeight();
+                widthNeeded = Math.max(widthNeeded, ts.widthNeeded);
+                heightNeeded += ts.heightNeeded;
             }
         } else if (node.getType() === RowNode.TYPE) {
             // recurse for child row
-            const size = analyseRow(node as RowNode);
+            const size = analyseRow(node as RowNode, updateIfNeeded);
             if (row.getOrientation() === Orientation.HORZ) {
                 if (size.widthNeeded) widthNeeded += size.widthNeeded;
                 if (size.heightNeeded) heightNeeded = Math.max(heightNeeded, size.heightNeeded);
@@ -43,10 +73,14 @@ const analyseRow = (row: RowNode): IDimensions => {
         }
     })
 
-    return { widthNeeded, heightNeeded }
+
+    return {
+        widthNeeded,
+        heightNeeded
+    }
 }
 
-export const analyseModel = (modelToAnalyse: Model, name?: string): IAnalyzedModel => {
+export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = false): IAnalyzedModel => {
 
     let prioTabset: TabSetNode | undefined = undefined;
     let activeTabset: TabSetNode | undefined = undefined;
@@ -66,12 +100,11 @@ export const analyseModel = (modelToAnalyse: Model, name?: string): IAnalyzedMod
     });
 
     // call analyze row with root
-    const size = analyseRow(rootRow);
+    const size = analyseRow(rootRow, updateIfNeeded);
 
     console.log("done");
 
     const result: IAnalyzedModel = {
-        name: name,
         model: modelToAnalyse,
         activeTabset: activeTabset,
         prioTabset: prioTabset,
