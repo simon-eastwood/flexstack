@@ -80,7 +80,7 @@ const templateModel = analyseModel(Model.fromJson(json), true);
 function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
-  const [stashedModels, setStashedModels] = useState<IAnalyzedModel[]>([templateModel]);
+  const [stashedModels] = useState<IAnalyzedModel[]>([templateModel]);
   const [currentModel, setCurrentModel] = useState(() => { return stashedModels[0] });
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState(false);
@@ -88,6 +88,7 @@ function App() {
 
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
+
 
 
 
@@ -176,7 +177,11 @@ function App() {
     // when tabs are moved by the user, this can lead to a "divide" whereby a new tabset is created automatically for the tab
     // this new tabset will not have a minimum size and so this needs to be set
     // also for deletion of tabs or addition of nodes, the size may be impacted
-    setTimeout(() => { console.log("Too timer..."); setCurrentModel(analyseModel(currentModel.model, true /* update min sizes if needed*/)); }, 100);
+    setTimeout(() => {
+      console.log("Too timer...");
+      stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, true /* update min sizes if needed*/);
+      setCurrentModel(stashedModels[stashedModels.length - 1]);
+    }, 100);
 
     return action;
   }
@@ -189,7 +194,9 @@ function App() {
     console.log("Too model changed");
     console.log(model);
 
-    setCurrentModel(analyseModel(model, false /* avoid infinite loop*/));
+    stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, false /* avoid infintie loop*/);
+    setCurrentModel(stashedModels[stashedModels.length - 1]);
+
   }
 
 
