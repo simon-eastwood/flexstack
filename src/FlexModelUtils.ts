@@ -1,4 +1,4 @@
-import { Model, TabNode, TabSetNode, Orientation, Actions, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
+import { Model, TabNode, TabSetNode, Orientation, Actions, Action, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
 
 
 
@@ -87,7 +87,7 @@ export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = fa
     let rootRow = modelToAnalyse.getRoot();
 
 
-    console.log("doign analysis");
+    console.log("Too doing analysis");
     // find the tabset that is currently active, and also the first tabset (as fallback)
     modelToAnalyse.visitNodes(node => {
 
@@ -120,13 +120,21 @@ export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = fa
 }
 
 
+export const cloneModel = (modelToClone: IAnalyzedModel): IAnalyzedModel => {
+    let saveCurrentJson = modelToClone.model.toJson();
+    let clone = { ...modelToClone };
+    clone.model = Model.fromJson(saveCurrentJson);
+    return clone;
+}
 
-export const stackZAxis = (analyzedModel: IAnalyzedModel): IAnalyzedModel => {
-
-    let targetTabset: FLNode = analyzedModel.activeTabset ? analyzedModel.activeTabset : analyzedModel.prioTabset!;
+export const stackZAxis = (modelToAdapt: IAnalyzedModel): IAnalyzedModel | undefined => {
+    let targetTabset: FLNode = modelToAdapt.activeTabset ? modelToAdapt.activeTabset : modelToAdapt.prioTabset!;
     let tabsToMove: FLNode[] = [];
 
-    analyzedModel.model.visitNodes((node) => {
+    let success = false;
+
+
+    modelToAdapt.model.visitNodes((node) => {
         console.log(node.getType() + " is " + node.getId());
         if (node.getParent()) {
             console.log(" and parent is: " + node!.getParent()!.getId());
@@ -141,21 +149,28 @@ export const stackZAxis = (analyzedModel: IAnalyzedModel): IAnalyzedModel => {
 
     tabsToMove.forEach(node => {
         let mv = Actions.moveNode(node.getId(), targetTabset?.getId(), DockLocation.CENTER, -1, false);
-        analyzedModel.model.doAction(mv);
+        modelToAdapt.model.doAction(mv);
+        success = true;
     })
 
+    if (success) {
+        return analyseModel(modelToAdapt.model);;
+    } else {
+        return undefined;
+    }
 
-    return analyseModel(analyzedModel.model);
 }
 
-export const stackYAxis = (analyzedModel: IAnalyzedModel): IAnalyzedModel => {
-    let activeTabset: FLNode = analyzedModel.activeTabset ? analyzedModel.activeTabset : analyzedModel.prioTabset!;
-    let targetRow = analyzedModel.rootRow;
+export const stackYAxis = (modelToAdapt: IAnalyzedModel): IAnalyzedModel | undefined => {
+    let activeTabset: FLNode = modelToAdapt.activeTabset ? modelToAdapt.activeTabset : modelToAdapt.prioTabset!;
+    let targetRow = modelToAdapt.rootRow;
     let tabSetsToMove: FLNode[] = [];
+
+    let success = false;
 
     if (targetRow) {
 
-        analyzedModel.model.visitNodes((node) => {
+        modelToAdapt.model.visitNodes((node) => {
             console.log(node.getType() + " is " + node.getId());
             if (node.getType().toLowerCase() === 'tabset' && node.getId() != activeTabset.getId()) {
                 tabSetsToMove.push(node);
@@ -165,22 +180,69 @@ export const stackYAxis = (analyzedModel: IAnalyzedModel): IAnalyzedModel => {
 
         tabSetsToMove.forEach(node => {
             let mv = Actions.moveNode(node.getId(), targetRow!.getId(), DockLocation.BOTTOM, -1);
+
             console.log(mv);
 
             console.log("before parent IS " + node.getParent()!.getId())
             console.log("node is "); console.log(node.toJson());
-            analyzedModel.model.doAction(mv);
+            modelToAdapt.model.doAction(mv);
+            success = true;
+
 
             // targetRow = node.getParent();
             console.log("after parent IS " + node.getParent()!.getId())
-
-
 
         })
 
     }
 
-    return analyseModel(analyzedModel.model);
+    if (success) {
+        return analyseModel(modelToAdapt.model);;
+    } else {
+        return undefined;
+    }
+}
+
+export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzedModel) => {
+    let actions: Action[] = [];
+    let lastTabSet: TabSetNode;
+    console.log("migrating model");
+
+    // Which nodes need to be deleted from target?
+    targetModel.model.visitNodes((node) => {
+        if (node.getType() === TabNode.TYPE) {
+            if (!sourceModel.model.getNodeById(node.getId())) {
+                actions.push(Actions.deleteTab(node.getId()));
+            }
+        } else if (node.getType() === TabSetNode.TYPE) {
+            lastTabSet = node as TabSetNode;
+        }
+    })
+
+    // which nodes need to added to the target?
+    sourceModel.model.visitNodes((node) => {
+        if (node.getType() === TabNode.TYPE) {
+            if (!targetModel.model.getNodeById(node.getId())) {
+                // add to the same parent if possible
+                const parent = node.getParent();
+                if (parent!.getType() === TabSetNode.TYPE && targetModel.model.getNodeById(parent!.getId())) {
+                    actions.push(Actions.addNode(node.toJson(), parent!.getId(), DockLocation.CENTER, -1, false));
+                } else {
+                    // Otherwise add to the last tabset in the model
+                    if (lastTabSet) {
+                        actions.push(Actions.addNode(node.toJson(), lastTabSet.getId(), DockLocation.CENTER, -1, false));
+                    } else {
+                        actions.push(Actions.addNode(node.toJson(), targetModel.model.getRoot().getId(), DockLocation.RIGHT, -1, false));
+                    }
+                }
+
+            }
+        }
+    });
+
+    actions.forEach(action => {
+        targetModel.model.doAction(action);
+    });
 }
 
 

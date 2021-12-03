@@ -4,7 +4,7 @@ import 'flexlayout-react/style/light.css'
 
 import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode } from 'flexlayout-react';
 
-import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis } from './FlexModelUtils';
+import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis, migrateModel, cloneModel } from './FlexModelUtils';
 
 import useMedia from './hooks/useMediaQuery';
 
@@ -79,9 +79,9 @@ const templateModel = analyseModel(Model.fromJson(json), true);
 
 function App() {
   // currentModel is what we're currently rendering.
-  // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModel" so that it can be restored later
-  const [currentModel, setCurrentModel] = useState(() => { return templateModel });
-  const [stashedModel, setStashedModel] = useState<IAnalyzedModel>();
+  // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
+  const [stashedModels, setStashedModels] = useState<IAnalyzedModel[]>([templateModel]);
+  const [currentModel, setCurrentModel] = useState(() => { return stashedModels[0] });
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState(false);
   const [stackStrategy, setStackStrategy] = useState('Z');
@@ -93,49 +93,66 @@ function App() {
 
   // If there is a stashed model, I want to switch back to it as soon as possible
   // If there is no stashed model (yet) then trigger when the current model becomes too big for viewport
-  const isTooNarrow = useMedia(`(max-width: ${stashedModel ? (stashedModel as IAnalyzedModel).widthNeeded : currentModel.widthNeeded}px)`);
+  const isTooNarrow = useMedia(`(max-width: ${currentModel.widthNeeded}px)`);
   useEffect(() => {
-    if (currentModel) {
-      if (!isTooNarrow) {
-        if (stashedModel) {
-          setCurrentModel(stashedModel);
-          setStashedModel(undefined);
-        }
+    console.log(`Too narrow: ${isTooNarrow} ${currentModel.widthNeeded}`)
+
+    if (isTooNarrow) {
+
+      let modelToAdapt;
+      modelToAdapt = cloneModel(currentModel);
+
+      // alter current model
+      let alteredModel: IAnalyzedModel | undefined;
+
+      if (stackStrategy === 'Z') {
+        alteredModel = stackZAxis(modelToAdapt);
+        setCanvasToggleAbs(false);
       } else {
-        // stash the current model
-        let saveCurrentJson = currentModel.model.toJson();
-        let copyOfCurrent = { ...currentModel };
-        copyOfCurrent.model = Model.fromJson(saveCurrentJson);
-        setStashedModel(copyOfCurrent);
-
-        // alter current model
-        let newModel: IAnalyzedModel;
-
-        if (isTooNarrow) {
-          if (stackStrategy === 'Z') {
-            newModel = stackZAxis(currentModel);
-            setCanvasToggleAbs(false);
-          } else {
-            newModel = stackYAxis(currentModel);
-          }
-          setCurrentModel(newModel);
-        }
+        alteredModel = stackYAxis(modelToAdapt);
       }
+
+      if (alteredModel) {
+        stashedModels.push(alteredModel);
+        console.log("Too Switching to NEW model: " + stashedModels.length);
+        setCurrentModel(stashedModels[stashedModels.length - 1]);
+
+      }
+
     }
   }, [isTooNarrow]);
 
+  // is the viewport now wide enough to switch back to the previous model?
+  const tooWide = stashedModels.length > 1 ? ((stashedModels[stashedModels.length - 2] as IAnalyzedModel).widthNeeded!) : 9999999999;
+  const isTooWide = useMedia(`(min-width: ${tooWide}px`);
+
+  useEffect(() => {
+    console.log(`Too wide: ${isTooWide} ${tooWide} (looking at ${stashedModels.length - 2})`)
+
+
+    if (isTooWide) {
+      console.log("Too Switching BACK to  model: " + (stashedModels.length - 2));
+
+      migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
+      stashedModels.pop();
+      setCurrentModel(stashedModels[stashedModels.length - 1]);
+    }
+
+  }, [isTooWide]);
+
+
 
   // If too short for current model switch to absolute, 
-  const isTooShortForCurrentModel = useMedia(`(max-height: ${currentModel.heightNeeded}px)`);
+  const isTooShort = useMedia(`(max-height: ${currentModel.heightNeeded}px)`);
   useEffect(() => {
     if (currentModel) {
-      if (!isTooShortForCurrentModel) {
+      if (!isTooShort) {
         setCanvasToggleAbs(false); console.log("REL CANVAS :" + currentModel.heightNeeded);
       } else {
         setCanvasToggleAbs(true); console.log("ABS CANVAS :" + currentModel.heightNeeded);
       }
     }
-  }, [isTooShortForCurrentModel]);
+  }, [isTooShort]);
 
 
   const factory = (node: TabNode) => {
@@ -159,7 +176,7 @@ function App() {
     // when tabs are moved by the user, this can lead to a "divide" whereby a new tabset is created automatically for the tab
     // this new tabset will not have a minimum size and so this needs to be set
     // also for deletion of tabs or addition of nodes, the size may be impacted
-    setTimeout(() => { setCurrentModel(analyseModel(currentModel.model, true /* update min sizes if needed*/)); }, 100);
+    setTimeout(() => { console.log("Too timer..."); setCurrentModel(analyseModel(currentModel.model, true /* update min sizes if needed*/)); }, 100);
 
     return action;
   }
@@ -169,7 +186,7 @@ function App() {
   }
 
   const modelChanged = (model: Model) => {
-    console.log("model changed");
+    console.log("Too model changed");
     console.log(model);
 
     setCurrentModel(analyseModel(model, false /* avoid infinite loop*/));
