@@ -81,52 +81,64 @@ function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
   const [stashedModels] = useState<IAnalyzedModel[]>([templateModel]);
-  const [currentModel, setCurrentModel] = useState(() => { return stashedModels[0] });
+  const [currentModel, _setCurrentModel] = useState(() => { return stashedModels[0] });
 
-  const [canvasToggleAbs, setCanvasToggleAbs] = useState(false);
+  const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
   const [stackStrategy, setStackStrategy] = useState('Z');
 
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
 
 
+  const setCurrentModel = () => {
+    // make sure that the current model is always pointing to the last in the stashed list
+    _setCurrentModel(stashedModels[stashedModels.length - 1]);
+  }
 
 
-  // If there is a stashed model, I want to switch back to it as soon as possible
-  // If there is no stashed model (yet) then trigger when the current model becomes too big for viewport
+
+  // If the viewport is too narrow for the current model....
   const isTooNarrow = useMedia(`(max-width: ${currentModel.widthNeeded}px)`);
   useEffect(() => {
     console.log(`Too narrow: ${isTooNarrow} ${currentModel.widthNeeded}`)
 
     if (isTooNarrow) {
 
-      let modelToAdapt;
-      modelToAdapt = cloneModel(currentModel);
+      let modelToAdapt = cloneModel(currentModel);
 
       // alter current model
       let alteredModel: IAnalyzedModel | undefined;
 
-      if (stackStrategy === 'Z') {
-        alteredModel = stackZAxis(modelToAdapt);
-        setCanvasToggleAbs(false);
-      } else {
-        alteredModel = stackYAxis(modelToAdapt);
+      switch (stackStrategy) {
+        case 'X':
+          setCanvasToggleAbs({ height: false, width: true });
+          break;
+        case 'Y':
+          alteredModel = stackYAxis(modelToAdapt);
+          break;
+        case 'Z':
+          alteredModel = stackZAxis(modelToAdapt);
+          setCanvasToggleAbs({ height: false, width: false });
       }
 
+      // If the adaption was successful, make this altered model the new current
       if (alteredModel) {
         stashedModels.push(alteredModel);
         console.log("Too Switching to NEW model: " + stashedModels.length);
-        setCurrentModel(stashedModels[stashedModels.length - 1]);
+        setCurrentModel();
 
       }
 
+    } else if (stackStrategy === 'X') {
+      // No need for absolute width anymore
+      setCanvasToggleAbs({ height: false, width: false });
     }
   }, [isTooNarrow]);
+
 
   // is the viewport now wide enough to switch back to the previous model?
   const tooWide = stashedModels.length > 1 ? ((stashedModels[stashedModels.length - 2] as IAnalyzedModel).widthNeeded!) : 9999999999;
   const isTooWide = useMedia(`(min-width: ${tooWide}px`);
-
   useEffect(() => {
     console.log(`Too wide: ${isTooWide} ${tooWide} (looking at ${stashedModels.length - 2})`)
 
@@ -136,7 +148,7 @@ function App() {
 
       migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
       stashedModels.pop();
-      setCurrentModel(stashedModels[stashedModels.length - 1]);
+      setCurrentModel();
     }
 
   }, [isTooWide]);
@@ -148,9 +160,12 @@ function App() {
   useEffect(() => {
     if (currentModel) {
       if (!isTooShort) {
-        setCanvasToggleAbs(false); console.log("REL CANVAS :" + currentModel.heightNeeded);
+        setCanvasToggleAbs({ height: false, width: canvasToggleAbs.width });
+        console.log("REL CANVAS :" + currentModel.heightNeeded);
       } else {
-        setCanvasToggleAbs(true); console.log("ABS CANVAS :" + currentModel.heightNeeded);
+        setCanvasToggleAbs({ height: true, width: canvasToggleAbs.width });
+
+        console.log("ABS CANVAS :" + currentModel.heightNeeded);
       }
     }
   }, [isTooShort]);
@@ -180,13 +195,14 @@ function App() {
     setTimeout(() => {
       console.log("Too timer...");
       stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, true /* update min sizes if needed*/);
-      setCurrentModel(stashedModels[stashedModels.length - 1]);
+      setCurrentModel();
     }, 100);
 
     return action;
   }
 
   const changeStrategy = (event: any) => {
+    setCanvasToggleAbs({ height: false, width: false });
     setStackStrategy(event.target.value);
   }
 
@@ -195,18 +211,24 @@ function App() {
     console.log(model);
 
     stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, false /* avoid infintie loop*/);
-    setCurrentModel(stashedModels[stashedModels.length - 1]);
+    setCurrentModel();
 
   }
 
+  const absStyle = {
+    height: canvasToggleAbs.height ? currentModel.heightNeeded + 'px' : '100%',
+    width: canvasToggleAbs.width ? currentModel.widthNeeded + 'px' : '100%'
+  };
 
   return (
 
-    <div className="outer" style={canvasToggleAbs ? { height: currentModel.heightNeeded + 'px' } : { height: '100%' }}>
+
+    <div className="outer" style={absStyle}>
       <span> Stacking strategy:</span>
       <select value={stackStrategy} onChange={changeStrategy}>
-        <option value="Z">Z axis</option>
+        <option value="X">X axis</option>
         <option value="Y">Y axis</option>
+        <option value="Z">Z axis</option>
       </select>
       <button onClick={onAdd}>Add</button>
       <div className="inner" >

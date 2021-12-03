@@ -23,7 +23,7 @@ const getTabSetMinSize = (tabset: TabSetNode, updateIfNeeded: boolean): IDimensi
 
     // iterate through the tabs to get min sizes
     tabset.getChildren().forEach(node => {
-        if (node.getType() != TabNode.TYPE) {
+        if (node.getType() !== TabNode.TYPE) {
             throw Error("tabset has a child which is not a tab - this is not expected")
         }
 
@@ -142,7 +142,7 @@ export const stackZAxis = (modelToAdapt: IAnalyzedModel): IAnalyzedModel | undef
         } else {
             console.log("none")
         }
-        if (node.getType().toLowerCase() === 'tab' && node.getParent()?.getId() != targetTabset!.getId()) {
+        if (node.getType().toLowerCase() === 'tab' && node.getParent()?.getId() !== targetTabset!.getId()) {
             tabsToMove.push(node);
         }
     });
@@ -172,7 +172,7 @@ export const stackYAxis = (modelToAdapt: IAnalyzedModel): IAnalyzedModel | undef
 
         modelToAdapt.model.visitNodes((node) => {
             console.log(node.getType() + " is " + node.getId());
-            if (node.getType().toLowerCase() === 'tabset' && node.getId() != activeTabset.getId()) {
+            if (node.getType().toLowerCase() === 'tabset' && node.getId() !== activeTabset.getId()) {
                 tabSetsToMove.push(node);
             }
         });
