@@ -34,7 +34,9 @@ const getTabSetMinSize = (tabset: TabSetNode, updateIfNeeded: boolean): IDimensi
     })
 
     // to avoid infinite loops, updates cannot be done on model updates
-    if (updateIfNeeded && (heightNeeded > 0 || widthNeeded > 0)) {
+    if ((updateIfNeeded && (heightNeeded > 0 || widthNeeded > 0)) &&
+        (tabset.getMinWidth() != widthNeeded || tabset.getMinHeight() != heightNeeded)) {
+        // only modify if different because this causes a model update which again causes analyse
         const setSize = Actions.updateNodeAttributes(tabset.getId(), { minWidth: widthNeeded, minHeight: heightNeeded });
         tabset.getModel().doAction(setSize);
     }
@@ -87,7 +89,7 @@ export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = fa
     let rootRow = modelToAnalyse.getRoot();
 
 
-    console.log("Too doing analysis");
+    console.log("Too doing analysis (" + updateIfNeeded);
     // find the tabset that is currently active, and also the first tabset (as fallback)
     modelToAnalyse.visitNodes(node => {
 
