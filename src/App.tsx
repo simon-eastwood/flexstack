@@ -2,89 +2,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 import 'flexlayout-react/style/light.css'
 
-import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode } from 'flexlayout-react';
+import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
 
 import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis, migrateModel, cloneModel } from './FlexModelUtils';
 
 import useMedia from './hooks/useMediaQuery';
 
-var json: IJsonModel = {
-  global: {
-    "rootOrientationVertical": false
-  }, // {tabSetEnableTabStrip:false}, // to have just splitters
-  layout: {
-    "type": "row",
-    "weight": 100,
-    "children": [
-      {
-        "type": "tabset",
-        "weight": 50,
-        "selected": 0,
-        "children": [
-          {
-            "type": "tab",
-            "name": "Things to try",
-            "component": "text",
-            "config": {
-              "text": "<ul><li>drag tabs</li><li>drag splitters</li><li>double click on tab to rename</li><li>double click on tabstrip to maximize</li><li>use the Add button to add another tab</li></ul>",
-              "minWidth": 510,
-              "minHeight": 350,
-            }
-          }
-        ]
-      },
-
-      {
-        "type": "tabset",
-        "weight": 50,
-        "selected": 0,
-        "children": [
-          {
-            "type": "tab",
-            "name": "two",
-            "component": "text",
-            "config": {
-              "text": "",
-              "minWidth": 510,
-              "minHeight": 350,
-            }
-          }
-        ]
-      },
-      {
-        "type": "tabset",
-        "weight": 50,
-        "selected": 0,
-        "children": [
-          {
-            "type": "tab",
-            "name": "three",
-            "component": "text",
-            "config": {
-              "text": "",
-              "minWidth": 510,
-              "minHeight": 350
-            }
-          }
-        ]
-      }
-
-
-    ]
-  }
-};
-
-const templateModel = analyseModel(Model.fromJson(json), true);
+import { loadTemplateModel } from './LoadTemplate'
 
 
 function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
-  const [stashedModels] = useState<IAnalyzedModel[]>([templateModel]);
+  const [stashedModels] = useState<IAnalyzedModel[]>([loadTemplateModel(DockLocation.CENTER)]);
   const [currentModel, _setCurrentModel] = useState(() => { return stashedModels[0] });
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
   const [stackStrategy, setStackStrategy] = useState('Z');
+  const [maxPanels, setMaxPanels] = useState(5);
+
 
   const containerRef = useRef(null);
   const layoutRef = useRef(null);
@@ -100,6 +36,8 @@ function App() {
   // If the viewport is too narrow for the current model....
   const isTooNarrow = useMedia(`(max-width: ${currentModel.widthNeeded}px)`);
   useEffect(() => {
+
+
     console.log(`Too narrow: ${isTooNarrow} ${currentModel.widthNeeded}`)
 
     if (isTooNarrow) {
@@ -117,7 +55,13 @@ function App() {
           alteredModel = stackYAxis(modelToAdapt);
           break;
         case 'Z':
-          alteredModel = stackZAxis(modelToAdapt);
+          let targetNrOfPanels = maxPanels;
+          // too wide for the current setup - reduce nr of panels
+          if (maxPanels > 1) {
+            setMaxPanels(maxPanels - 1); // Note: this happens asynchronously
+            targetNrOfPanels--;
+          }
+          alteredModel = stackZAxis(modelToAdapt, targetNrOfPanels);
           setCanvasToggleAbs({ height: false, width: false });
       }
 
@@ -206,6 +150,11 @@ function App() {
     setStackStrategy(event.target.value);
   }
 
+  const changeMaxTabsets = (event: any) => {
+    setCanvasToggleAbs({ height: false, width: false });
+    setMaxPanels(event.target.value);
+  }
+
   const modelChanged = (model: Model) => {
     console.log("Too model changed");
     console.log(model);
@@ -224,13 +173,21 @@ function App() {
 
 
     <div className="outer" style={absStyle}>
+      <button onClick={onAdd}>Add Panel</button>
       <span> Stacking strategy:</span>
       <select value={stackStrategy} onChange={changeStrategy}>
         <option value="X">X axis</option>
         <option value="Y">Y axis</option>
         <option value="Z">Z axis</option>
       </select>
-      <button onClick={onAdd}>Add</button>
+      <span> Number of Panels:</span>
+      <select value={maxPanels} onChange={changeMaxTabsets}>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
       <div className="inner" >
         {currentModel && (
           <Layout ref={layoutRef}
