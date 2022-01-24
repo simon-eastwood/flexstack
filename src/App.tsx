@@ -15,7 +15,6 @@ function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
   const [stashedModels, _setStashedModels] = useState<IAnalyzedModel[]>(() => { return [loadTemplateModel(DockLocation.CENTER)] });
-  const [currentModel, _setCurrentModel] = useState(() => { return stashedModels[0] });
   const [maxPanels, setMaxPanels] = useState(5);
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
@@ -24,9 +23,27 @@ function App() {
 
   const layoutRef = useRef(null);
 
-  const setCurrentModel = () => {
-    // make sure that the current model is always pointing to the last in the stashed list
-    _setCurrentModel(stashedModels[stashedModels.length - 1]);
+
+  const currentModel = stashedModels[stashedModels.length - 1];
+
+
+  const stashPush = (model: IAnalyzedModel) => {
+    const newStash = stashedModels.concat(model);
+    _setStashedModels(newStash);
+    console.log("=== PUSH"); console.log(newStash);
+  }
+
+  const stashPop = () => {
+    console.log("before pop");
+    console.log(stashedModels);
+    const newStash = stashedModels.slice(0, -1);
+    _setStashedModels(newStash);
+    console.log("=== POP"); console.log(newStash)
+  }
+
+  const stashLoad = (model: IAnalyzedModel) => {
+    const newStash = [model];
+    _setStashedModels(newStash);
   }
 
 
@@ -40,12 +57,11 @@ function App() {
 
       // if that helped, push altered model onto the stack
       if (alteredModel.widthNeeded != previousModelWidth) {
-        stashedModels.push(alteredModel);
-        _setStashedModels(stashedModels);
+        stashPush(alteredModel);
       }
       alteredModel = cloneModel(alteredModel);
-    } while (alteredModel.widthNeeded != previousModelWidth && alteredModel.widthNeeded! > window.innerWidth)
-    setCurrentModel();
+    } while (alteredModel.widthNeeded !== previousModelWidth && alteredModel.widthNeeded! > window.innerWidth)
+
     // keep removing tabsets until its narrow enough, or we're not making any further progress
   }
 
@@ -86,10 +102,8 @@ function App() {
     console.log(`Too wide: ${isTooWide} ${tooWide} (looking at ${stashedModels.length - 2})`)
 
     if (isTooWide) {
-      //   migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
-      stashedModels.pop();
-      _setStashedModels(stashedModels);
-      setCurrentModel();
+      migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
+      stashPop();
       // _setStashedModels(stashedModels); console.log("====>calling set stashed models");
     }
 
@@ -152,8 +166,8 @@ function App() {
   const loadPanels = (event: any) => {
     console.log("loading ... ");
     setMaxPanels(parseInt(event.target.value));
-    _setStashedModels([loadTemplateModel(DockLocation.CENTER, maxPanels)]);
-    setCurrentModel();
+    stashLoad(loadTemplateModel(DockLocation.CENTER, parseInt(event.target.value)));
+    // stashLoad(stashedModels[0]);
     console.log("set current model "); console.log(stashedModels);
 
     console.log("===UPDATED");
@@ -174,6 +188,7 @@ function App() {
 
   console.log("===RENDERING : " + stashedModels.length + " " + stashedModels[stashedModels.length - 1].widthNeeded);
   console.log("==== current model width is " + currentModel.widthNeeded); console.log(currentModel);
+
   return (
 
 
