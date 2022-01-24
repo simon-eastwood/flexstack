@@ -130,90 +130,12 @@ export const cloneModel = (modelToClone: IAnalyzedModel): IAnalyzedModel => {
     return clone;
 }
 
-const addIfNotAlreadyIn = (arrayOfNodes: TabNode[], nodeToAdd: TabNode) => {
-    if (!arrayOfNodes.find((n) => n.getId() === nodeToAdd.getId())) {
-        // add it
-        arrayOfNodes.push(nodeToAdd as TabNode);
-    }
-}
 
-const addSiblings = (arrayOfNodes: TabNode[], node: TabNode) => {
-    node.getParent()!.getChildren().forEach((n) => addIfNotAlreadyIn(arrayOfNodes, n as TabNode))
-}
-
-export const stackZAxis = (modelToAdapt: IAnalyzedModel, maxPanels: number): IAnalyzedModel | undefined => {
-
-    const m = removeTabset(modelToAdapt.model, DockLocation.CENTER);
-
-    console.log("trimmed tabset");
-
-    return analyseModel(m);
-    /*    let targetTabset: FLNode = modelToAdapt.activeTabset ? modelToAdapt.activeTabset : modelToAdapt.lowestPrioTabset!;
-       let tabsToMove: TabNode[] = [];
-   
-       let success = false;
-   
-   
-       modelToAdapt.model.visitNodes((node) => {
-           if (node.getType().toLowerCase() === 'tab' && node.getParent()?.getId() !== targetTabset!.getId() && tabsToMove.length === 0) {
-               // add this node and any siblings it has
-               addSiblings(tabsToMove, node as TabNode);
-           }
-       });
-   
-       tabsToMove.forEach(node => {
-           let mv = Actions.moveNode(node.getId(), targetTabset?.getId(), DockLocation.CENTER, -1, false);
-           modelToAdapt.model.doAction(mv);
-           success = true;
-       })
-   
-       if (success) {
-           return analyseModel(modelToAdapt.model);;
-       } else {
-           return undefined;
-       }
-    */
-}
-
-export const stackYAxis = (modelToAdapt: IAnalyzedModel): IAnalyzedModel | undefined => {
-    let activeTabset: FLNode = modelToAdapt.activeTabset ? modelToAdapt.activeTabset : modelToAdapt.lowestPrioTabset!;
-    let targetRow = modelToAdapt.rootRow;
-    let tabSetsToMove: FLNode[] = [];
-
-    let success = false;
-
-    if (targetRow) {
-
-        modelToAdapt.model.visitNodes((node) => {
-            console.log(node.getType() + " is " + node.getId());
-            if (node.getType().toLowerCase() === 'tabset' && node.getId() !== activeTabset.getId() && tabSetsToMove.length === 0) {
-                tabSetsToMove.push(node);
-            }
-        });
-
-
-        tabSetsToMove.forEach(node => {
-            let mv = Actions.moveNode(node.getId(), targetRow!.getId(), DockLocation.BOTTOM, -1);
-
-            modelToAdapt.model.doAction(mv);
-            success = true;
-
-            // targetRow = node.getParent();
-        })
-
-    }
-
-    if (success) {
-        return analyseModel(modelToAdapt.model);;
-    } else {
-        return undefined;
-    }
-}
 
 export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzedModel) => {
     let actions: Action[] = [];
     let lastTabSet: TabSetNode;
-    console.log("migrating model");
+    console.log("migrating model"); console.log(sourceModel); console.log(targetModel);
 
     // Which nodes need to be deleted from target?
     targetModel.model.visitNodes((node) => {
@@ -261,17 +183,27 @@ export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzed
 export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelNr?: number): Model => {
     let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
+    let totalNrOfTabSets = 0;
 
+    console.log("Removing tabset...")
+    // first find out how many tabsets there are in the model and collect the ones with a "panel" number. Record max panel nr found
     model.visitNodes((node) => {
-        if (node.getType() === 'tabset' && (node as TabSetNode).getConfig().panel) {
-            const ts = node as TabSetNode;
-            const panelNr = ts.getConfig().panel;
-            panels.set(panelNr, ts);
-            maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
+        if (node.getType() === 'tabset') {
+            totalNrOfTabSets++;
+            if ((node as TabSetNode).getConfig()?.panel) {
+                const ts = node as TabSetNode;
+                const panelNr = ts.getConfig().panel;
+                panels.set(panelNr, ts);
+                maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
+            }
         }
     });
-
     maxPanel = (maxPanelNr) ? maxPanelNr : maxPanel;
+
+    if (totalNrOfTabSets < 2) {
+        // don't want to delete the last tabset, so bail out here
+        return model;
+    }
 
     if (panels.size > 0) {
         // if there are tabsets in the model marked with a panel id then use this to decide which one to delete
@@ -290,7 +222,7 @@ export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelN
                             return currentValue;
                         });
                     }
-                    // if cant find preferred desination, just take fist one
+                    // if cant find preferred desination, just take first one
                     if (destinationId === -1) {
                         const ps = Array.from(panels.keys());
                         destinationId = ps[0];
@@ -306,9 +238,11 @@ export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelN
                 )
 
 
-                // delete the tabset
+                // delete the tabset. Actually an empty tabset will not be rendered
+                // but this will confuse the task of finding next tab to remove
+                // so better to clean up
                 let del = Actions.deleteTabset(ts.getId());
-                // model.doAction(del);
+                model.doAction(del);
             }
         })
     } else {
@@ -322,6 +256,8 @@ export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelN
             }
         });
     }
+
+    console.log("done removing tabset");
     return model;
 }
 

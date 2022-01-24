@@ -4,7 +4,7 @@ import 'flexlayout-react/style/light.css'
 
 import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
 
-import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis, migrateModel, cloneModel } from './FlexModelUtils';
+import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset } from './FlexModelUtils';
 
 import useMedia from './hooks/useMediaQuery';
 
@@ -14,21 +14,39 @@ import { loadTemplateModel } from './LoadTemplate'
 function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
-  const [stashedModels] = useState<IAnalyzedModel[]>([loadTemplateModel(DockLocation.CENTER)]);
+  const [stashedModels, _setStashedModels] = useState<IAnalyzedModel[]>(() => { return [loadTemplateModel(DockLocation.CENTER)] });
   const [currentModel, _setCurrentModel] = useState(() => { return stashedModels[0] });
+  const [maxPanels, setMaxPanels] = useState(5);
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
   const [stackStrategy, setStackStrategy] = useState('Z');
-  const [maxPanels, setMaxPanels] = useState(5);
 
 
-  const containerRef = useRef(null);
   const layoutRef = useRef(null);
-
 
   const setCurrentModel = () => {
     // make sure that the current model is always pointing to the last in the stashed list
     _setCurrentModel(stashedModels[stashedModels.length - 1]);
+  }
+
+
+  const downsizeModel = (stackDirection: DockLocation) => {
+    let alteredModel = cloneModel(currentModel);
+    let previousModelWidth = alteredModel.widthNeeded;
+
+    do {
+      let m = removeTabset(alteredModel.model, stackDirection);
+      alteredModel = analyseModel(m);
+
+      // if that helped, push altered model onto the stack
+      if (alteredModel.widthNeeded != previousModelWidth) {
+        stashedModels.push(alteredModel);
+        _setStashedModels(stashedModels);
+      }
+      alteredModel = cloneModel(alteredModel);
+    } while (alteredModel.widthNeeded != previousModelWidth && alteredModel.widthNeeded! > window.innerWidth)
+    setCurrentModel();
+    // keep removing tabsets until its narrow enough, or we're not making any further progress
   }
 
 
@@ -37,64 +55,45 @@ function App() {
   const isTooNarrow = useMedia(`(max-width: ${currentModel.widthNeeded}px)`);
   useEffect(() => {
 
-
-    console.log(`Too narrow: ${isTooNarrow} ${currentModel.widthNeeded}`)
-
     if (isTooNarrow) {
-
-      let modelToAdapt = cloneModel(currentModel);
-
-      // alter current model
-      let alteredModel: IAnalyzedModel | undefined;
+      console.log("Too Narrow " + currentModel.widthNeeded);
 
       switch (stackStrategy) {
         case 'X':
           setCanvasToggleAbs({ height: false, width: true });
           break;
         case 'Y':
-          alteredModel = stackYAxis(modelToAdapt);
+          downsizeModel(DockLocation.BOTTOM);
           break;
         case 'Z':
-          let targetNrOfPanels = maxPanels;
-          // too wide for the current setup - reduce nr of panels
-          if (maxPanels > 1) {
-            setMaxPanels(maxPanels - 1); // Note: this happens asynchronously
-            targetNrOfPanels--;
-          }
-          alteredModel = stackZAxis(modelToAdapt, targetNrOfPanels);
+          downsizeModel(DockLocation.CENTER);
           setCanvasToggleAbs({ height: false, width: false });
-      }
-
-      // If the adaption was successful, make this altered model the new current
-      if (alteredModel) {
-        stashedModels.push(alteredModel);
-        console.log("Too Switching to NEW model: " + stashedModels.length);
-        setCurrentModel();
-
       }
 
     } else if (stackStrategy === 'X') {
       // No need for absolute width anymore
       setCanvasToggleAbs({ height: false, width: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTooNarrow]);
 
 
   // is the viewport now wide enough to switch back to the previous model?
   const tooWide = stashedModels.length > 1 ? ((stashedModels[stashedModels.length - 2] as IAnalyzedModel).widthNeeded!) : 9999999999;
+  console.log("===> too wide is " + tooWide);
   const isTooWide = useMedia(`(min-width: ${tooWide}px`);
   useEffect(() => {
     console.log(`Too wide: ${isTooWide} ${tooWide} (looking at ${stashedModels.length - 2})`)
 
-
     if (isTooWide) {
-      console.log("Too Switching BACK to  model: " + (stashedModels.length - 2));
-
-      migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
+      //   migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
       stashedModels.pop();
+      _setStashedModels(stashedModels);
       setCurrentModel();
+      // _setStashedModels(stashedModels); console.log("====>calling set stashed models");
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTooWide]);
 
 
@@ -112,6 +111,7 @@ function App() {
         console.log("ABS CANVAS :" + currentModel.heightNeeded);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTooShort]);
 
 
@@ -139,7 +139,6 @@ function App() {
     setTimeout(() => {
       console.log("Too timer...");
       stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, true /* update min sizes if needed*/);
-      setCurrentModel();
     }, 100);
 
     return action;
@@ -150,9 +149,14 @@ function App() {
     setStackStrategy(event.target.value);
   }
 
-  const changeMaxTabsets = (event: any) => {
-    setCanvasToggleAbs({ height: false, width: false });
-    setMaxPanels(event.target.value);
+  const loadPanels = (event: any) => {
+    console.log("loading ... ");
+    setMaxPanels(parseInt(event.target.value));
+    _setStashedModels([loadTemplateModel(DockLocation.CENTER, maxPanels)]);
+    setCurrentModel();
+    console.log("set current model "); console.log(stashedModels);
+
+    console.log("===UPDATED");
   }
 
   const modelChanged = (model: Model) => {
@@ -160,7 +164,6 @@ function App() {
     console.log(model);
 
     stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, false /* avoid infintie loop*/);
-    setCurrentModel();
 
   }
 
@@ -169,6 +172,8 @@ function App() {
     width: canvasToggleAbs.width ? currentModel.widthNeeded + 'px' : '100%'
   };
 
+  console.log("===RENDERING : " + stashedModels.length + " " + stashedModels[stashedModels.length - 1].widthNeeded);
+  console.log("==== current model width is " + currentModel.widthNeeded); console.log(currentModel);
   return (
 
 
@@ -181,7 +186,7 @@ function App() {
         <option value="Z">Z axis</option>
       </select>
       <span> Number of Panels:</span>
-      <select value={maxPanels} onChange={changeMaxTabsets}>
+      <select value={maxPanels} onChange={loadPanels}>
         <option value="1">1</option>
         <option value="2">2</option>
         <option value="3">3</option>

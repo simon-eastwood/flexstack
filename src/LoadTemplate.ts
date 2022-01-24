@@ -1,6 +1,6 @@
 import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
 
-import { analyseModel, stackZAxis, IAnalyzedModel, stackYAxis, migrateModel, cloneModel, removeTabset } from './FlexModelUtils';
+import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset } from './FlexModelUtils';
 
 
 
@@ -132,7 +132,7 @@ export const loadTemplateModel = (howToStack: DockLocation, maxPanel?: number,) 
     let model = Model.fromJson(taskTemplateLayout.model as IJsonModel);
 
     if (maxPanel) {
-        model = removeTabset(model, howToStack, maxPanel);
+        model = removeTabset(model, howToStack, maxPanel + 1);
     }
     const templateModel = analyseModel(model, true);
 
