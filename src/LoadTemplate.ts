@@ -1,6 +1,6 @@
-import { Model, IJsonModel, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
+import { Model, IJsonModel, Node as FLNode, DockLocation } from 'flexlayout-react';
 
-import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset, moveTabset } from './FlexModelUtils';
+import { analyseModel, removeTabset, moveTabset } from './FlexModelUtils';
 
 
 
@@ -8,7 +8,9 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
     name: 'task1',
     model: {
         global: {
-            "rootOrientationVertical": false
+            "rootOrientationVertical": false,
+            "tabSetEnableDivide": false, // it keeps things simpler for moving tabs if all tabsets are labelled with a panel nr
+            "enableEdgeDock": false // otherwise the user can create new tabsets by dragging into the edge
         }, // {tabSetEnableTabStrip:false}, // to have just splitters
         layout: {
             "type": "row",
@@ -30,7 +32,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "Comm",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferences": [1,1,1,1,1]
+                                "panelPreferences": [1.1,1.1,1.1,1.1,1.1]
                             }
                         }
                     ]
@@ -51,7 +53,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "Letter",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferences": [1, 1, 2, 2, 2]
+                                "panelPreferences": [-1.3, -1.3, 2.1, 2.1, 2.1]
                             }
                         }
                     ]
@@ -72,7 +74,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "Claims",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferences": [1,2,3,3,3]
+                                "panelPreferences": [-1.4,-2.2,-3.2,3.1,3.1]
                             }
                         }
                     ]
@@ -94,7 +96,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "Fig",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferences": [1,1,1,1,4]
+                                "panelPreferences": [-1.2,-1.2,-1.2,-1.2,4.1]
                             }
                         }
                     ]
@@ -115,7 +117,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "AppAn",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferences": [1,2, 3, 4, 5]
+                                "panelPreferences": [-1.5,2.1, 3.1, 4.1, 5.1]
                             }
                         }
                     ]

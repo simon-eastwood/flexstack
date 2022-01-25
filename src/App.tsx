@@ -173,14 +173,14 @@ function App() {
 
   return (
     <div className="outer" style={absStyle}>
-      <button onClick={onAdd}>Add Panel</button>
+      {/*       <button onClick={onAdd}>Add Panel</button>
       <span> Stacking strategy:</span>
       <select value={stackStrategy} onChange={changeStrategy}>
         <option value="X">X axis</option>
         <option value="Y">Y axis</option>
         <option value="Z">Z axis</option>
       </select>
-      <span> Number of Panels:</span>
+ */}      <span> Number of Panels:</span>
       <select value={maxPanels} onChange={loadPanels}>
         <option value="1">1</option>
         <option value="2">2</option>
