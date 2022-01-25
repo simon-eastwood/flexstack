@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 import 'flexlayout-react/style/light.css'
 
-import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
+import { Layout, Model, TabNode, Action, DockLocation } from 'flexlayout-react';
 
 import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset, moveTabset } from './FlexModelUtils';
 
@@ -71,25 +71,23 @@ function App() {
   useEffect(() => {
 
     if (isTooNarrow) {
-      console.log("Too Narrow " + currentModel.widthNeeded);
-
       switch (stackStrategy) {
-        case 'X':
+/*         case 'X':
           setCanvasToggleAbs({ height: false, width: true });
           break;
         case 'Y':
           console.log("Y STACK")
           downsizeModel(DockLocation.BOTTOM);
           break;
-        case 'Z':
+ */        case 'Z':
           downsizeModel(DockLocation.CENTER);
           setCanvasToggleAbs({ height: false, width: false });
       }
 
-    } else if (stackStrategy === 'X') {
+    } /* else if (stackStrategy === 'X') {
       // No need for absolute width anymore
       setCanvasToggleAbs({ height: false, width: false });
-    }
+    } */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTooNarrow]);
 
@@ -110,19 +108,19 @@ function App() {
 
 
   // If too short for current model switch to absolute, 
-  const isTooShort = useMedia(`(max-height: ${currentModel.heightNeeded}px)`);
-  useEffect(() => {
-    if (currentModel) {
-      if (!isTooShort) {
-        setCanvasToggleAbs({ height: false, width: canvasToggleAbs.width });
-      } else {
-        setCanvasToggleAbs({ height: true, width: canvasToggleAbs.width });
+  /*   const isTooShort = useMedia(`(max-height: ${currentModel.heightNeeded}px)`);
+    useEffect(() => {
+      if (currentModel) {
+        if (!isTooShort) {
+          setCanvasToggleAbs({ height: false, width: canvasToggleAbs.width });
+        } else {
+          setCanvasToggleAbs({ height: true, width: canvasToggleAbs.width });
+        }
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTooShort]);
-
-
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isTooShort]);
+  
+   */
   const factory = (node: TabNode) => {
     var component = node.getComponent();
     if (component === "text") {
@@ -130,14 +128,14 @@ function App() {
     }
   }
 
-  const onAdd = (event: any) => {
-    (layoutRef.current! as Layout).addTabWithDragAndDropIndirect("Add panel<br>(Drag to location)", {
-      component: "text",
-      name: "added",
-      config: { text: "i was added", minHeight: 300, minWidth: 400 }
-    }, undefined);
-  }
-
+  /*   const onAdd = (event: any) => {
+      (layoutRef.current! as Layout).addTabWithDragAndDropIndirect("Add panel<br>(Drag to location)", {
+        component: "text",
+        name: "added",
+        config: { text: "i was added", minHeight: 300, minWidth: 400 }
+      }, undefined);
+    }
+   */
   const interceptAction = (action: Action) => {
 
     // when tabs are moved by the user, this can lead to a "divide" whereby a new tabset is created automatically for the tab
@@ -150,13 +148,12 @@ function App() {
     return action;
   }
 
-  const changeStrategy = (event: any) => {
-    setCanvasToggleAbs({ height: false, width: false });
-    setStackStrategy(event.target.value);
-  }
-
+  /*   const changeStrategy = (event: any) => {
+      setCanvasToggleAbs({ height: false, width: false });
+      setStackStrategy(event.target.value);
+    }
+   */
   const loadPanels = (event: any) => {
-    console.log("loading ... ");
     setMaxPanels(parseInt(event.target.value));
     stashSet([loadTemplateModel(DockLocation.CENTER, parseInt(event.target.value))]);
   }

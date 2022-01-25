@@ -1,4 +1,4 @@
-import { Model, IJsonModel, Node as FLNode, DockLocation } from 'flexlayout-react';
+import { Model, IJsonModel, DockLocation } from 'flexlayout-react';
 
 import { analyseModel, removeTabset, moveTabset } from './FlexModelUtils';
 
@@ -10,7 +10,8 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
         global: {
             "rootOrientationVertical": false,
             "tabSetEnableDivide": false, // it keeps things simpler for moving tabs if all tabsets are labelled with a panel nr
-            "enableEdgeDock": false // otherwise the user can create new tabsets by dragging into the edge
+            "enableEdgeDock": false, // otherwise the user can create new tabsets by dragging into the edge
+            "tabEnableClose": false
         }, // {tabSetEnableTabStrip:false}, // to have just splitters
         layout: {
             "type": "row",
@@ -20,14 +21,12 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "type": "tabset",
                     "weight": 50,
                     "selected": 0,
-                    "config": {
-                        "panel": 1
-                    },
                     "children": [
                         {
                             "type": "tab",
                             "name": "Comm",
                             "component": "text",
+                            "enableClose": false,
                             "config": {
                                 "text": "Comm",
                                 "minWidth": 510,
@@ -41,14 +40,12 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "type": "tabset",
                     "weight": 50,
                     "selected": 0,
-                    "config": {
-                        "panel": 2
-                    },
                     "children": [
                         {
                             "type": "tab",
                             "name": "Letter",
                             "component": "text",
+                            "enableClose": false,
                             "config": {
                                 "text": "Letter",
                                 "minWidth": 510,
@@ -62,14 +59,12 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "type": "tabset",
                     "weight": 50,
                     "selected": 0,
-                    "config": {
-                        "panel": 3
-                    },
                     "children": [
                         {
                             "type": "tab",
                             "name": "Claims",
                             "component": "text",
+                            "enableClose": false,
                             "config": {
                                 "text": "Claims",
                                 "minWidth": 510,
@@ -84,14 +79,12 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "type": "tabset",
                     "weight": 50,
                     "selected": 0,
-                    "config": {
-                        "panel": 4
-                    },
                     "children": [
                         {
                             "type": "tab",
                             "name": "Fig",
                             "component": "text",
+                            "enableClose": false,
                             "config": {
                                 "text": "Fig",
                                 "minWidth": 510,
@@ -105,17 +98,15 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "type": "tabset",
                     "weight": 50,
                     "selected": 0,
-                    "config": {
-                        "panel": 5
-                    },
                     "children": [
                         {
                             "type": "tab",
                             "name": "AppAn",
                             "component": "text",
+                            "enableClose": false,
                             "config": {
                                 "text": "AppAn",
-                                "minWidth": 510,
+                                "minWidth": 1252,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.5,2.1, 3.1, 4.1, 5.1]
                             }

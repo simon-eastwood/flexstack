@@ -1,4 +1,5 @@
 import { Model, TabNode, TabSetNode, Orientation, Actions, Action, Node as FLNode, DockLocation, RowNode } from 'flexlayout-react';
+import { parseConfigFileTextToJson } from 'typescript';
 
 
 
@@ -123,7 +124,6 @@ export const cloneModel = (modelToClone: IAnalyzedModel): IAnalyzedModel => {
 export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzedModel) => {
     let actions: Action[] = [];
     let lastTabSet: TabSetNode;
-    console.log("migrating model"); console.log(sourceModel); console.log(targetModel);
 
     // Which nodes need to be deleted from target?
     targetModel.model.visitNodes((node) => {
@@ -163,142 +163,113 @@ export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzed
 }
 
 export const moveTabset = (model: Model): Model => {
-    let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
-    let totalNrOfTabSets = 0;
 
+    let panelNr = 1;
     model.visitNodes((node) => {
         if (node.getType() === 'tabset') {
-            totalNrOfTabSets++;
             if ((node as TabSetNode).getConfig()?.panel) {
                 const ts = node as TabSetNode;
-                const panelNr = ts.getConfig().panel;
-                panels.set(panelNr, ts);
-                maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
+                panels.set(panelNr++, ts);
             }
         }
     });
 
-    if (totalNrOfTabSets < 2) {
+    if (panels.size < 2) {
         // can't move the  last tabset, so bail out here
         return model;
     }
 
-    if (panels.size > 0) {
-        let mv = Actions.moveNode(panels.get(maxPanel)!.getId(), model.getRoot().getId() ,DockLocation.BOTTOM, -1, false);
-        model.doAction(mv);   
-    }
+    let mv = Actions.moveNode(panels.get(panels.size)!.getId(), model.getRoot().getId() ,DockLocation.BOTTOM, -1, false);
+    model.doAction(mv);   
 
     return model;
 }
 
 
 // 1. find the tabsets within the model and put them into a map based on their panel number
-// 2. for each panel, if its panel id is larger than max panel then it needs to be deleted but not before...
+// 2. for each panel, if its panel nr is larger than max panel then it needs to be deleted but not before...
 // 3. ...moving its children to their preferred destination specified in panelPreferences.
 // The child nodes are then moved to their new preferred / available panel
 export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
     let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
-    let totalNrOfTabSets = 0;
-
+ 
   
-    // first find out how many tabsets there are in the model and collect the ones with a "panel" number. Record max panel nr found
+    // first find out how many tabsets there are in the model and collect them in a map. 
+    let panelNr = 1;
     model.visitNodes((node) => {
         if (node.getType() === 'tabset') {
-            totalNrOfTabSets++;
-            if ((node as TabSetNode).getConfig()?.panel) {
-                const ts = node as TabSetNode;
-                const panelNr = ts.getConfig().panel;
-                panels.set(panelNr, ts);
-                maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
-            }
+            const ts = node as TabSetNode;
+            panels.set(panelNr++, ts);
         }
     });
-    maxPanel = (maxPanelNr) ? maxPanelNr : maxPanel;
+    maxPanel = (maxPanelNr) ? maxPanelNr : panels.size;
 
-    if (totalNrOfTabSets < 2) {
+    if (panels.size < 2) {
         // don't want to delete the last tabset, so bail out here
         return model;
     }
 
-    // Now delete all tabsets labeled with a panelId >= maxPanel
+    // Now delete the top N tabsets
     // if this function is called without a maxPanelNr then that's just the last panel (e.g. 5)
     // if this function is called with a maxPanelNr (cos we're loading a template and the user only wants e.g. 2 panels) then that could be more than 1
-    if (panels.size > 0) {
-        // if there are tabsets in the model marked with a panel id then use this to decide which one to delete
-        panels.forEach((ts, panelNr) => {
-            if (panelNr >= maxPanel) {
-                // move the children
-                const childrenToMove = new Map<TabNode, Destination>();
-                ts.getChildren().forEach((child) => {
-                    if (child.getType() === 'tab') {
-                        const tab = child as TabNode;
-                        childrenToMove.set(tab, tabToDestination(tab, maxPanel - 1));
-                    }
-                })
+    
+    panels.forEach((ts, panelNr) => {
+        if (panelNr >= maxPanel) {
+            // move the children
+            const childrenToMove = new Map<TabNode, Destination>();
+            ts.getChildren().forEach((child) => {
+                if (child.getType() === 'tab') {
+                    const tab = child as TabNode;
+                    childrenToMove.set(tab, tabToDestination(tab, maxPanel - 1));
+                }
+            })
 
-                childrenToMove.forEach((dest, child) => {
-                    let p = panels.get(dest.destMajor);
-                    let mv;
-                     if (p) {
-                         mv = Actions.moveNode(child.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref? dest.destPref > 0: false) /* +ve = selected */);
-                     } else {
-                         // got to move it somewhere....then to root
-                        mv = Actions.moveNode(child.getId(), model.getRoot().getId(), DockLocation.CENTER, - 1, false);
-                    }
-                    model.doAction(mv);
-                })
+            childrenToMove.forEach((dest, child) => {
+                let p = panels.get(dest.destMajor);
+                let mv;
+                    if (p) {
+                        mv = Actions.moveNode(child.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref? dest.destPref > 0: false) /* +ve = selected */);
+                    } else {
+                        // got to move it somewhere....then to root
+                    mv = Actions.moveNode(child.getId(), model.getRoot().getId(), DockLocation.CENTER, - 1, false);
+                }
+                model.doAction(mv);
+            })
 
 
-                // delete the tabset. Actually an empty tabset will not be rendered
-                // but this will confuse the task of finding next tab to remove
-                // so better to clean up
-                let del = Actions.deleteTabset(ts.getId());
-                model.doAction(del);
-            }
-        })
-    } else {
-        let done = false;
-        // no tabsets in the model have config.panel set so just delete the first one that isnt active
-        model.visitNodes((node) => {
-            if (!done && node.getType() === 'tabset' && !(node as TabSetNode).isActive()) {
-                let del = Actions.deleteTabset(node.getId());
-                model.doAction(del);
-                done = true;
-            }
-        });
-    }
-
+            // delete the tabset. Actually an empty tabset will not be rendered
+            // but this will confuse the task of finding next tab to remove
+            // so better to clean up
+            let del = Actions.deleteTabset(ts.getId());
+            model.doAction(del);
+        }
+    })
+    
     // With less tabsets, some other tabs might prefer to be moved
     reorderTabs(model);
-    console.log("done removing tabset");
     return model;
 }
 
 // move tabs if necessary so that they are all on their preferred panel, in the preferred order
 const reorderTabs = (model: Model) => {
-    let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
 
-    // first find out how many tabsets there are in the model and collect the ones with a "panel" number. Record max panel nr found
+    // first find out how many tabsets there are in the model 
+    let panelNr = 1;
     model.visitNodes((node) => {
         if (node.getType() === 'tabset') {
-            if ((node as TabSetNode).getConfig()?.panel) {
-                const ts = node as TabSetNode;
-                const panelNr = ts.getConfig().panel;
-                panels.set(panelNr, ts);
-                maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
-            } 
+            const ts = node as TabSetNode;
+            panels.set(panelNr++, ts);
         }
     });
-
 
     // Now iterate through the tabs and see where to move them
     const tabsToMove = new Map<TabNode, Destination>();
     model.visitNodes((node) => {
         if (node.getType() === 'tab') {
-            tabsToMove.set(node as TabNode, tabToDestination(node as TabNode, maxPanel));
+            tabsToMove.set(node as TabNode, tabToDestination(node as TabNode, panels.size));
         }
     });
 
@@ -309,7 +280,6 @@ const reorderTabs = (model: Model) => {
 
         if (dest.destMajor !== 0) {
             let p = panels.get(dest.destMajor);
-            console.log ("max panel is " + maxPanel + " and " + p + " derived from " + dest + " for " + tab.getName() + " destMahor " + dest.destMajor + " in " + panels)
             // tabOrder is the number after the decimal point
             if (p) {
                 mv = Actions.moveNode(tab.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref? dest.destPref > 0: false) /* +ve = selected */);
