@@ -1,6 +1,6 @@
-import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
+import { Model, IJsonModel, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
 
-import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset } from './FlexModelUtils';
+import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset, moveTabset } from './FlexModelUtils';
 
 
 
@@ -24,34 +24,13 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "children": [
                         {
                             "type": "tab",
-                            "name": "One",
+                            "name": "Comm",
                             "component": "text",
                             "config": {
-                                "text": "<ul><li>drag tabs</li><li>drag splitters</li><li>double click on tab to rename</li><li>double click on tabstrip to maximize</li><li>use the Add button to add another tab</li></ul>",
+                                "text": "Comm",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferenceOrder": [1]
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "tabset",
-                    "weight": 50,
-                    "selected": 0,
-                    "config": {
-                        "panel": 3
-                    },
-                    "children": [
-                        {
-                            "type": "tab",
-                            "name": "three",
-                            "component": "text",
-                            "config": {
-                                "text": "this is tab three",
-                                "minWidth": 510,
-                                "minHeight": 350,
-                                "panelPreferenceOrder": [3, 2, 1]
+                                "panelPreferences": [1,1,1,1,1]
                             }
                         }
                     ]
@@ -66,17 +45,39 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "children": [
                         {
                             "type": "tab",
-                            "name": "two",
+                            "name": "Letter",
                             "component": "text",
                             "config": {
-                                "text": "this is tab two",
+                                "text": "Letter",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferenceOrder": [2, 1]
+                                "panelPreferences": [1, 1, 2, 2, 2]
                             }
                         }
                     ]
                 },
+                {
+                    "type": "tabset",
+                    "weight": 50,
+                    "selected": 0,
+                    "config": {
+                        "panel": 3
+                    },
+                    "children": [
+                        {
+                            "type": "tab",
+                            "name": "Claims",
+                            "component": "text",
+                            "config": {
+                                "text": "Claims",
+                                "minWidth": 510,
+                                "minHeight": 350,
+                                "panelPreferences": [1,2,3,3,3]
+                            }
+                        }
+                    ]
+                },
+
                 {
                     "type": "tabset",
                     "weight": 50,
@@ -87,13 +88,13 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "children": [
                         {
                             "type": "tab",
-                            "name": "four",
+                            "name": "Fig",
                             "component": "text",
                             "config": {
-                                "text": "this is tab four",
+                                "text": "Fig",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferenceOrder": [4, 3, 2, 1]
+                                "panelPreferences": [1,1,1,1,4]
                             }
                         }
                     ]
@@ -108,13 +109,13 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                     "children": [
                         {
                             "type": "tab",
-                            "name": "five",
+                            "name": "AppAn",
                             "component": "text",
                             "config": {
-                                "text": "this is tab five",
+                                "text": "AppAn",
                                 "minWidth": 510,
                                 "minHeight": 350,
-                                "panelPreferenceOrder": [5, 4, 3, 2, 1]
+                                "panelPreferences": [1,2, 3, 4, 5]
                             }
                         }
                     ]
@@ -132,7 +133,11 @@ export const loadTemplateModel = (howToStack: DockLocation, maxPanel?: number,) 
     let model = Model.fromJson(taskTemplateLayout.model as IJsonModel);
 
     if (maxPanel) {
-        model = removeTabset(model, howToStack, maxPanel + 1);
+        if (howToStack === DockLocation.BOTTOM) {
+            model = moveTabset(model);
+        } else {
+            model = removeTabset(model, maxPanel + 1);
+        }
     }
     const templateModel = analyseModel(model, true);
 

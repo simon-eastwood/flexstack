@@ -174,18 +174,48 @@ export const migrateModel = (sourceModel: IAnalyzedModel, targetModel: IAnalyzed
     });
 }
 
-
-// 1. find the tabsets within the model and put them into a map based on their panel number
-// 2. for each panel, if its panel id is larger than max panel then it needs to be deleted but not before...
-// 3. ...moving its children to their preferred destination specified in panelPreferenceOrder.
-// The ids in this list are checked one-by-one until one is found that is "small enough" that that panel stills exists.
-// The child nodes are then moved to their new preferred / available panel
-export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelNr?: number): Model => {
+export const moveTabset = (model: Model): Model => {
     let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
     let totalNrOfTabSets = 0;
 
-    console.log("Removing tabset...")
+    model.visitNodes((node) => {
+        if (node.getType() === 'tabset') {
+            totalNrOfTabSets++;
+            if ((node as TabSetNode).getConfig()?.panel) {
+                const ts = node as TabSetNode;
+                const panelNr = ts.getConfig().panel;
+                panels.set(panelNr, ts);
+                maxPanel = (panelNr > maxPanel) ? panelNr : maxPanel;
+            }
+        }
+    });
+
+    if (totalNrOfTabSets < 2) {
+        // can't move the  last tabset, so bail out here
+        return model;
+    }
+
+    if (panels.size > 0) {
+        let mv = Actions.moveNode(panels.get(maxPanel)!.getId(), model.getRoot().getId() ,DockLocation.BOTTOM, -1, false);
+        model.doAction(mv);   
+    }
+
+    return model;
+}
+
+
+// 1. find the tabsets within the model and put them into a map based on their panel number
+// 2. for each panel, if its panel id is larger than max panel then it needs to be deleted but not before...
+// 3. ...moving its children to their preferred destination specified in panelPreferences.
+// The ids in this list are checked one-by-one until one is found that is "small enough" that that panel stills exists.
+// The child nodes are then moved to their new preferred / available panel
+export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
+    let maxPanel = -1;
+    const panels = new Map<number, TabSetNode>();
+    let totalNrOfTabSets = 0;
+
+  
     // first find out how many tabsets there are in the model and collect the ones with a "panel" number. Record max panel nr found
     model.visitNodes((node) => {
         if (node.getType() === 'tabset') {
@@ -212,15 +242,11 @@ export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelN
                 // move the children
                 const childrenToMove = new Map<TabNode, TabSetNode>();
                 ts.getChildren().forEach((child) => {
-                    let destinationId = -1;
-                    if (child.getType() === 'tab' && (child as TabNode).getConfig().panelPreferenceOrder) {
-                        // find the prefered destination by looking through the pref order list until a small-enough number is found
-                        destinationId = ((child as TabNode).getConfig().panelPreferenceOrder as Array<number>).reduce((previousPreference, currentValue) => {
-                            if (previousPreference < maxPanel) {
-                                return previousPreference;
-                            }
-                            return currentValue;
-                        });
+                    let destinationId = -1; 
+                    if (child.getType() === 'tab' && (child as TabNode).getConfig().panelPreferences) {
+                        // get the preferred panel for layouts with MAXPANEL panels
+                        destinationId = (child as TabNode).getConfig().panelPreferences[maxPanel - 2];
+                        
                     }
                     // if cant find preferred desination, just take first one
                     if (destinationId === -1) {
@@ -228,14 +254,12 @@ export const removeTabset = (model: Model, dockLocation: DockLocation, maxPanelN
                         destinationId = ps[0];
                     }
                     childrenToMove.set(child as TabNode, panels.get(destinationId)!);
-
                 })
 
                 childrenToMove.forEach((dest, child) => {
-                    let mv = Actions.moveNode(child.getId(), dest.getId(), DockLocation.CENTER, -1, false);
-                    model.doAction(mv);
-                }
-                )
+                        let mv = Actions.moveNode(child.getId(), dest.getId(),  DockLocation.CENTER, -1, false);
+                        model.doAction(mv);       
+                })
 
 
                 // delete the tabset. Actually an empty tabset will not be rendered

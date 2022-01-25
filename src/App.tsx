@@ -4,7 +4,7 @@ import 'flexlayout-react/style/light.css'
 
 import { Layout, Model, TabNode, TabSetNode, IJsonModel, Action, Actions, Node as FLNode, DockLocation } from 'flexlayout-react';
 
-import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset } from './FlexModelUtils';
+import { analyseModel, IAnalyzedModel, migrateModel, cloneModel, removeTabset, moveTabset } from './FlexModelUtils';
 
 import useMedia from './hooks/useMediaQuery';
 
@@ -23,27 +23,16 @@ function App() {
 
   const layoutRef = useRef(null);
 
-
   const currentModel = stashedModels[stashedModels.length - 1];
 
 
-  const stashPush = (model: IAnalyzedModel) => {
-    const newStash = stashedModels.concat(model);
-    _setStashedModels(newStash);
-    console.log("=== PUSH"); console.log(newStash);
-  }
-
   const stashPop = () => {
-    console.log("before pop");
-    console.log(stashedModels);
     const newStash = stashedModels.slice(0, -1);
     _setStashedModels(newStash);
-    console.log("=== POP"); console.log(newStash)
   }
 
-  const stashLoad = (model: IAnalyzedModel) => {
-    const newStash = [model];
-    _setStashedModels(newStash);
+  const stashSet = (model: IAnalyzedModel[]) => {
+    _setStashedModels(model);
   }
 
 
@@ -51,18 +40,28 @@ function App() {
     let alteredModel = cloneModel(currentModel);
     let previousModelWidth = alteredModel.widthNeeded;
 
+    const newStash = [...stashedModels];
+
     do {
-      let m = removeTabset(alteredModel.model, stackDirection);
+      let m;
+      if (stackDirection === DockLocation.BOTTOM) {
+        m = moveTabset(alteredModel.model);
+      } else {
+        m = removeTabset(alteredModel.model);
+      }
       alteredModel = analyseModel(m);
 
+
       // if that helped, push altered model onto the stack
-      if (alteredModel.widthNeeded != previousModelWidth) {
-        stashPush(alteredModel);
+      if (alteredModel.widthNeeded !== previousModelWidth) {
+        newStash.push(alteredModel);
       }
       alteredModel = cloneModel(alteredModel);
     } while (alteredModel.widthNeeded !== previousModelWidth && alteredModel.widthNeeded! > window.innerWidth)
-
     // keep removing tabsets until its narrow enough, or we're not making any further progress
+
+    // note: cannot use push in a loop because setState is asyncrhonous and only the last call to setState persists
+    stashSet(newStash);
   }
 
 
@@ -79,6 +78,7 @@ function App() {
           setCanvasToggleAbs({ height: false, width: true });
           break;
         case 'Y':
+          console.log("Y STACK")
           downsizeModel(DockLocation.BOTTOM);
           break;
         case 'Z':
@@ -96,15 +96,12 @@ function App() {
 
   // is the viewport now wide enough to switch back to the previous model?
   const tooWide = stashedModels.length > 1 ? ((stashedModels[stashedModels.length - 2] as IAnalyzedModel).widthNeeded!) : 9999999999;
-  console.log("===> too wide is " + tooWide);
   const isTooWide = useMedia(`(min-width: ${tooWide}px`);
   useEffect(() => {
-    console.log(`Too wide: ${isTooWide} ${tooWide} (looking at ${stashedModels.length - 2})`)
 
     if (isTooWide) {
       migrateModel(currentModel, stashedModels[stashedModels.length - 2]);
       stashPop();
-      // _setStashedModels(stashedModels); console.log("====>calling set stashed models");
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,11 +115,8 @@ function App() {
     if (currentModel) {
       if (!isTooShort) {
         setCanvasToggleAbs({ height: false, width: canvasToggleAbs.width });
-        console.log("REL CANVAS :" + currentModel.heightNeeded);
       } else {
         setCanvasToggleAbs({ height: true, width: canvasToggleAbs.width });
-
-        console.log("ABS CANVAS :" + currentModel.heightNeeded);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,13 +139,11 @@ function App() {
   }
 
   const interceptAction = (action: Action) => {
-    console.log(action);
 
     // when tabs are moved by the user, this can lead to a "divide" whereby a new tabset is created automatically for the tab
     // this new tabset will not have a minimum size and so this needs to be set
     // also for deletion of tabs or addition of nodes, the size may be impacted
     setTimeout(() => {
-      console.log("Too timer...");
       stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, true /* update min sizes if needed*/);
     }, 100);
 
@@ -166,19 +158,11 @@ function App() {
   const loadPanels = (event: any) => {
     console.log("loading ... ");
     setMaxPanels(parseInt(event.target.value));
-    stashLoad(loadTemplateModel(DockLocation.CENTER, parseInt(event.target.value)));
-    // stashLoad(stashedModels[0]);
-    console.log("set current model "); console.log(stashedModels);
-
-    console.log("===UPDATED");
+    stashSet([loadTemplateModel(DockLocation.CENTER, parseInt(event.target.value))]);
   }
 
   const modelChanged = (model: Model) => {
-    console.log("Too model changed");
-    console.log(model);
-
     stashedModels[stashedModels.length - 1] = analyseModel(currentModel.model, false /* avoid infintie loop*/);
-
   }
 
   const absStyle = {
@@ -186,12 +170,8 @@ function App() {
     width: canvasToggleAbs.width ? currentModel.widthNeeded + 'px' : '100%'
   };
 
-  console.log("===RENDERING : " + stashedModels.length + " " + stashedModels[stashedModels.length - 1].widthNeeded);
-  console.log("==== current model width is " + currentModel.widthNeeded); console.log(currentModel);
 
   return (
-
-
     <div className="outer" style={absStyle}>
       <button onClick={onAdd}>Add Panel</button>
       <span> Stacking strategy:</span>
