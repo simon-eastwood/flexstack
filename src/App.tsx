@@ -124,7 +124,19 @@ function App() {
   const factory = (node: TabNode) => {
     var component = node.getComponent();
     if (component === "text") {
-      return <div dangerouslySetInnerHTML={{ __html: node.getConfig().text }} />;
+      return <div dangerouslySetInnerHTML={{ __html: node.getConfig().text }} />
+    } else if (component === "iframe") {
+      const s = {
+        height: '99%',
+        width: '99%'
+      }
+      return <iframe src={node.getConfig().text} style={s} />
+    } else if (component === "image") {
+      const s = {
+        height: '100%',
+        width: '100%'
+      }
+      return <img src={node.getConfig().text} style={s} />
     }
   }
 

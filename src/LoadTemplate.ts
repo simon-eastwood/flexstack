@@ -15,21 +15,20 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
         }, // {tabSetEnableTabStrip:false}, // to have just splitters
         layout: {
             "type": "row",
-            "weight": 100,
+
             "children": [
                 {
                     "type": "tabset",
-                    "weight": 50,
                     "selected": 0,
                     "children": [
                         {
                             "type": "tab",
                             "name": "Comm",
-                            "component": "text",
+                            "component": "iframe",
                             "enableClose": false,
                             "config": {
-                                "text": "Comm",
-                                "minWidth": 750,
+                                "text": "https://www.ibm.com/downloads/cas/GB8ZMQZ3",
+                                "minWidth": 450,
                                 "minHeight": 350,
                                 "panelPreferences": [1.1, 1.1, 1.1, 1.1, 1.1]
                             }
@@ -38,17 +37,16 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                 },
                 {
                     "type": "tabset",
-                    "weight": 50,
                     "selected": 0,
                     "children": [
                         {
                             "type": "tab",
                             "name": "Letter",
-                            "component": "text",
+                            "component": "iframe",
                             "enableClose": false,
                             "config": {
-                                "text": "Letter",
-                                "minWidth": 750,
+                                "text": "https://ai.stanford.edu/~nilsson/MLBOOK.pdf",
+                                "minWidth": 450,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.3, -1.3, 2.1, 2.1, 2.1]
                             }
@@ -57,17 +55,16 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                 },
                 {
                     "type": "tabset",
-                    "weight": 50,
                     "selected": 0,
                     "children": [
                         {
                             "type": "tab",
                             "name": "Claims",
-                            "component": "text",
+                            "component": "iframe",
                             "enableClose": false,
                             "config": {
-                                "text": "Claims",
-                                "minWidth": 750,
+                                "text": "https://patentimages.storage.googleapis.com/68/80/73/6a17a66e9ec8c5/US11107588.pdf",
+                                "minWidth": 450,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.4, -2.2, -3.2, 3.1, 3.1]
                             }
@@ -77,16 +74,15 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
 
                 {
                     "type": "tabset",
-                    "weight": 50,
                     "selected": 0,
                     "children": [
                         {
                             "type": "tab",
                             "name": "Fig",
-                            "component": "text",
+                            "component": "iframe",
                             "enableClose": false,
                             "config": {
-                                "text": "Fig",
+                                "text": "https://patentimages.storage.googleapis.com/US20060145019A1/US20060145019A1-20060706-D00000.png",
                                 "minWidth": 750,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.2, -1.2, -1.2, -1.2, 4.1]
@@ -96,16 +92,15 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                 },
                 {
                     "type": "tabset",
-                    "weight": 50,
                     "selected": 0,
                     "children": [
                         {
                             "type": "tab",
                             "name": "AppAn",
-                            "component": "text",
+                            "component": "image",
                             "enableClose": false,
                             "config": {
-                                "text": "AppAn",
+                                "text": "/123Check_only.png",
                                 "minWidth": 1252,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.5, 2.1, 3.1, 4.1, 5.1]
