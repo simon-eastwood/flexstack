@@ -81,10 +81,11 @@ const analyseRow = (row: RowNode, updateIfNeeded: boolean): IDimensions => {
     }
 }
 
-export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = false): IAnalyzedModel => {
+export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = true): IAnalyzedModel => {
 
     let lowestPrioTabset: TabSetNode | undefined = undefined;
     let activeTabset: TabSetNode | undefined = undefined;
+
 
 
     // find the tabset that is currently active, and also the first tabset (as fallback)
@@ -108,6 +109,8 @@ export const analyseModel = (modelToAnalyse: Model, updateIfNeeded: boolean = fa
         heightNeeded: size.heightNeeded
     }
 
+    console.log("updateifneeded? " + updateIfNeeded);
+    console.log(result);
     return result;
 }
 
@@ -180,8 +183,8 @@ export const moveTabset = (model: Model): Model => {
         return model;
     }
 
-    let mv = Actions.moveNode(panels.get(panels.size)!.getId(), model.getRoot().getId() ,DockLocation.BOTTOM, -1, false);
-    model.doAction(mv);   
+    let mv = Actions.moveNode(panels.get(panels.size)!.getId(), model.getRoot().getId(), DockLocation.BOTTOM, -1, false);
+    model.doAction(mv);
 
     return model;
 }
@@ -194,8 +197,8 @@ export const moveTabset = (model: Model): Model => {
 export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
     let maxPanel = -1;
     const panels = new Map<number, TabSetNode>();
- 
-  
+
+
     // first find out how many tabsets there are in the model and collect them in a map. 
     let panelNr = 1;
     model.visitNodes((node) => {
@@ -214,7 +217,7 @@ export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
     // Now delete the top N tabsets
     // if this function is called without a maxPanelNr then that's just the last panel (e.g. 5)
     // if this function is called with a maxPanelNr (cos we're loading a template and the user only wants e.g. 2 panels) then that could be more than 1
-    
+
     panels.forEach((ts, panelNr) => {
         if (panelNr >= maxPanel) {
             // move the children
@@ -229,10 +232,10 @@ export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
             childrenToMove.forEach((dest, child) => {
                 let p = panels.get(dest.destMajor);
                 let mv;
-                    if (p) {
-                        mv = Actions.moveNode(child.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref? dest.destPref > 0: false) /* +ve = selected */);
-                    } else {
-                        // got to move it somewhere....then to root
+                if (p) {
+                    mv = Actions.moveNode(child.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref ? dest.destPref > 0 : false) /* +ve = selected */);
+                } else {
+                    // got to move it somewhere....then to root
                     mv = Actions.moveNode(child.getId(), model.getRoot().getId(), DockLocation.CENTER, - 1, false);
                 }
                 model.doAction(mv);
@@ -246,7 +249,7 @@ export const removeTabset = (model: Model, maxPanelNr?: number): Model => {
             model.doAction(del);
         }
     })
-    
+
     // With less tabsets, some other tabs might prefer to be moved
     reorderTabs(model);
     return model;
@@ -282,11 +285,11 @@ const reorderTabs = (model: Model) => {
             let p = panels.get(dest.destMajor);
             // tabOrder is the number after the decimal point
             if (p) {
-                mv = Actions.moveNode(tab.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref? dest.destPref > 0: false) /* +ve = selected */);
+                mv = Actions.moveNode(tab.getId(), p!.getId(), DockLocation.CENTER, dest.destMinor - 1, (dest.destPref ? dest.destPref > 0 : false) /* +ve = selected */);
                 model.doAction(mv);
             }
         }
-            
+
     })
 
 
@@ -295,29 +298,29 @@ const reorderTabs = (model: Model) => {
 
 // use tab config to see, for the given max panel, where the tab should go
 type Destination = {
-    destPref: number|undefined , // the original config value (can be negative or undefined)
+    destPref: number | undefined, // the original config value (can be negative or undefined)
     destMajor: number, // 0 means unknown destination
     destMinor: number
 }
-const tabToDestination = (tab: TabNode, maxPanel: number = 5):Destination =>  {
+const tabToDestination = (tab: TabNode, maxPanel: number = 5): Destination => {
     let destPref;
-    
-     if (tab.getConfig()?.panelPreferences?.length >= maxPanel) { 
+
+    if (tab.getConfig()?.panelPreferences?.length >= maxPanel) {
         destPref = tab.getConfig().panelPreferences[maxPanel - 1];
         const destMajor = Math.floor(Math.abs(destPref));
         const destMinor = Math.round((Math.abs(destPref) === destMajor) ? 0 : (Math.abs(destPref) - destMajor) * 10);
 
-         return {
+        return {
             destPref,
             destMajor,
             destMinor
-        } 
+        }
     } else {
-         return {
-             destPref,
-             destMajor: 0,
-             destMinor: -1
+        return {
+            destPref,
+            destMajor: 0,
+            destMinor: -1
         }
     }
-    
+
 }

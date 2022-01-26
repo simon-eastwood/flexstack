@@ -29,9 +29,9 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "Comm",
-                                "minWidth": 510,
+                                "minWidth": 750,
                                 "minHeight": 350,
-                                "panelPreferences": [1.1,1.1,1.1,1.1,1.1]
+                                "panelPreferences": [1.1, 1.1, 1.1, 1.1, 1.1]
                             }
                         }
                     ]
@@ -48,7 +48,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "Letter",
-                                "minWidth": 510,
+                                "minWidth": 750,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.3, -1.3, 2.1, 2.1, 2.1]
                             }
@@ -67,9 +67,9 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "Claims",
-                                "minWidth": 510,
+                                "minWidth": 750,
                                 "minHeight": 350,
-                                "panelPreferences": [-1.4,-2.2,-3.2,3.1,3.1]
+                                "panelPreferences": [-1.4, -2.2, -3.2, 3.1, 3.1]
                             }
                         }
                     ]
@@ -87,9 +87,9 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "Fig",
-                                "minWidth": 510,
+                                "minWidth": 750,
                                 "minHeight": 350,
-                                "panelPreferences": [-1.2,-1.2,-1.2,-1.2,4.1]
+                                "panelPreferences": [-1.2, -1.2, -1.2, -1.2, 4.1]
                             }
                         }
                     ]
@@ -108,7 +108,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                                 "text": "AppAn",
                                 "minWidth": 1252,
                                 "minHeight": 350,
-                                "panelPreferences": [-1.5,2.1, 3.1, 4.1, 5.1]
+                                "panelPreferences": [-1.5, 2.1, 3.1, 4.1, 5.1]
                             }
                         }
                     ]
@@ -132,7 +132,7 @@ export const loadTemplateModel = (howToStack: DockLocation, maxPanel?: number,) 
             model = removeTabset(model, maxPanel + 1);
         }
     }
-    const templateModel = analyseModel(model, true);
+    const templateModel = analyseModel(model);
 
     return templateModel;
 }
