@@ -133,8 +133,14 @@ function App() {
       return <iframe src={node.getConfig().text} style={s} />
     } else if (component === "image") {
       const s = {
-        height: '100%',
-        width: '100%'
+        height: '99%',
+        width: '99%'
+      }
+      return <img src={node.getConfig().text} style={s} />
+    } else if (component === "123check") {
+      const s = {
+        width: '1250px',
+        height: '1000px'
       }
       return <img src={node.getConfig().text} style={s} />
     }

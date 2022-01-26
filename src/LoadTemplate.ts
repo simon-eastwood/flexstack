@@ -79,11 +79,11 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                         {
                             "type": "tab",
                             "name": "Fig",
-                            "component": "iframe",
+                            "component": "image",
                             "enableClose": false,
                             "config": {
                                 "text": "https://patentimages.storage.googleapis.com/US20060145019A1/US20060145019A1-20060706-D00000.png",
-                                "minWidth": 750,
+                                "minWidth": 350,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.2, -1.2, -1.2, -1.2, 4.1]
                             }
@@ -97,10 +97,10 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                         {
                             "type": "tab",
                             "name": "AppAn",
-                            "component": "image",
+                            "component": "123check",
                             "enableClose": false,
                             "config": {
-                                "text": "/123Check_only.png",
+                                "text": "./123Check_only.png",
                                 "minWidth": 1252,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.5, 2.1, 3.1, 4.1, 5.1]
