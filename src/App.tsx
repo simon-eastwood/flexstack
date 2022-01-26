@@ -139,7 +139,7 @@ function App() {
       return <img src={node.getConfig().text} style={s} />
     } else if (component === "123check") {
       const s = {
-        width: '1250px',
+        width: '1220px',
         height: '1000px'
       }
       return <img src={node.getConfig().text} style={s} />

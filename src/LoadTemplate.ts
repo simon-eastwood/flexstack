@@ -28,7 +28,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "https://www.ibm.com/downloads/cas/GB8ZMQZ3",
-                                "minWidth": 450,
+                                "minWidth": 50,
                                 "minHeight": 350,
                                 "panelPreferences": [1.1, 1.1, 1.1, 1.1, 1.1]
                             }
@@ -46,7 +46,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "https://ai.stanford.edu/~nilsson/MLBOOK.pdf",
-                                "minWidth": 450,
+                                "minWidth": 50,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.3, -1.3, 2.1, 2.1, 2.1]
                             }
@@ -64,7 +64,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "https://patentimages.storage.googleapis.com/68/80/73/6a17a66e9ec8c5/US11107588.pdf",
-                                "minWidth": 450,
+                                "minWidth": 50,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.4, -2.2, -3.2, 3.1, 3.1]
                             }
@@ -100,7 +100,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "component": "123check",
                             "enableClose": false,
                             "config": {
-                                "text": "./123Check_only.png",
+                                "text": "/flexstack/123Check_only.png",
                                 "minWidth": 1252,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.5, 2.1, 3.1, 4.1, 5.1]
