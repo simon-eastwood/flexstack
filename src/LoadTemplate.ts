@@ -9,8 +9,8 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
     model: {
         global: {
             "rootOrientationVertical": false,
-            "tabSetEnableDivide": false, // it keeps things simpler for moving tabs if all tabsets are labelled with a panel nr
-            "enableEdgeDock": false, // otherwise the user can create new tabsets by dragging into the edge
+            // "tabSetEnableDivide": false, // it keeps things simpler for moving tabs if all tabsets are labelled with a panel nr
+            // "enableEdgeDock": false, // otherwise the user can create new tabsets by dragging into the edge
             "tabEnableClose": false
         }, // {tabSetEnableTabStrip:false}, // to have just splitters
         layout: {
@@ -24,7 +24,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                         {
                             "type": "tab",
                             "name": "Comm",
-                            "component": "iframe",
+                            "component": "pdf",
                             "enableClose": false,
                             "config": {
                                 "text": "https://www.ibm.com/downloads/cas/GB8ZMQZ3",
@@ -42,7 +42,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                         {
                             "type": "tab",
                             "name": "Letter",
-                            "component": "iframe",
+                            "component": "pdf",
                             "enableClose": false,
                             "config": {
                                 "text": "https://ai.stanford.edu/~nilsson/MLBOOK.pdf",
@@ -60,7 +60,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                         {
                             "type": "tab",
                             "name": "Claims",
-                            "component": "iframe",
+                            "component": "pdf",
                             "enableClose": false,
                             "config": {
                                 "text": "https://patentimages.storage.googleapis.com/68/80/73/6a17a66e9ec8c5/US11107588.pdf",
@@ -83,7 +83,7 @@ var taskTemplateLayout: { name: string, model: IJsonModel } = {
                             "enableClose": false,
                             "config": {
                                 "text": "https://patentimages.storage.googleapis.com/US20060145019A1/US20060145019A1-20060706-D00000.png",
-                                "minWidth": 350,
+                                "minWidth": 250,
                                 "minHeight": 350,
                                 "panelPreferences": [-1.2, -1.2, -1.2, -1.2, 4.1]
                             }

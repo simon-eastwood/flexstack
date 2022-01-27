@@ -18,7 +18,7 @@ function App() {
   const [maxPanels, setMaxPanels] = useState(5);
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
-  const [stackStrategy, setStackStrategy] = useState('Z');
+  const [stackStrategy, setStackStrategy] = useState('NONE');
 
 
   const layoutRef = useRef(null);
@@ -125,12 +125,17 @@ function App() {
     var component = node.getComponent();
     if (component === "text") {
       return <div dangerouslySetInnerHTML={{ __html: node.getConfig().text }} />
-    } else if (component === "iframe") {
-      const s = {
+    } else if (component === "pdf") {
+      const sMax = {
         height: '99%',
         width: '99%'
       }
-      return <iframe src={node.getConfig().text} style={s} />
+      const cont = {
+        height: '100%',
+        width: '100%',
+        overflow: 'hidden'
+      }
+      return <div style={cont}>  <iframe src={node.getConfig().text} style={sMax} /> </div>
     } else if (component === "image") {
       const s = {
         height: '99%',
