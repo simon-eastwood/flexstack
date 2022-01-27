@@ -14,7 +14,23 @@ import { loadTemplateModel } from './LoadTemplate'
 function App() {
   // currentModel is what we're currently rendering.
   // If we need to alter the layout due to size restrictions, the previous state is saved in "stashedModels" so that it can be restored later
-  const [stashedModels, _setStashedModels] = useState<IAnalyzedModel[]>(() => { return [loadTemplateModel(DockLocation.CENTER)] });
+  const [stashedModels, _setStashedModels] = useState<IAnalyzedModel[]>(() => {
+    // this is now hardocded but it should be deduced by analysing the template model for this task
+    const currentWidth = window.innerWidth;
+    let defaultNrPanels;
+    if (currentWidth > 1652) {
+      defaultNrPanels = 5;
+    } else if (currentWidth > 1652 - 50) {
+      defaultNrPanels = 4;
+    } else if (currentWidth > (1652 - 50) - 50) {
+      defaultNrPanels = 3;
+    } else if (currentWidth > ((1652 - 50) - 50) - 50) {
+      defaultNrPanels = 2;
+    } else {
+      defaultNrPanels = 1;
+    }
+    return [loadTemplateModel(DockLocation.CENTER, defaultNrPanels)]
+  });
   const [maxPanels, setMaxPanels] = useState(5);
 
   const [canvasToggleAbs, setCanvasToggleAbs] = useState({ height: false, width: false });
